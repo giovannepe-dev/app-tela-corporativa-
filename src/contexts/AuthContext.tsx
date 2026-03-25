@@ -48,6 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
 
   useEffect(() => {
+    // Safety net: force loading=false after 10s no matter what
+    const safetyTimeout = setTimeout(() => setLoading(false), 10000);
+
+    const done = () => {
+      clearTimeout(safetyTimeout);
+      setLoading(false);
+    };
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -60,8 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Failed to fetch profile/roles:", e);
         }
       }
-      setLoading(false);
-    }).catch(() => setLoading(false));
+      done();
+    }).catch(done);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -83,7 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
