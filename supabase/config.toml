@@ -1,0 +1,10 @@
+project_id = "qbxovcazqpgigrkirhwh"
+
+[functions.device-pairing]
+verify_jwt = false
+
+[functions.proxy-url]
+verify_jwt = false
+
+[functions.rss-feed]
+verify_jwt = false
