@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +19,7 @@ interface CompanyPlan {
 
 export default function TrialGuard({ children }: { children: React.ReactNode }) {
   const { profile, roles, signOut, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [company, setCompany] = useState<CompanyPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
@@ -83,7 +85,7 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
                   <span>smartsolucoesstore@gmail.com</span>
                 </a>
               </div>
-              <Button variant="outline" onClick={() => signOut()} className="w-full mt-2">
+              <Button variant="outline" onClick={async () => { await signOut(); navigate("/auth"); }} className="w-full mt-2">
                 <LogOut className="h-4 w-4 mr-2" />
                 Voltar ao login
               </Button>
@@ -121,7 +123,7 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
                   <span>smartsolucoesstore@gmail.com</span>
                 </a>
               </div>
-              <Button variant="outline" onClick={() => signOut()} className="w-full mt-2">
+              <Button variant="outline" onClick={async () => { await signOut(); navigate("/auth"); }} className="w-full mt-2">
                 <LogOut className="h-4 w-4 mr-2" />
                 Voltar ao login
               </Button>
