@@ -34,9 +34,6 @@ async function fetchProfileAndRoles(userId: string) {
       .select("role")
       .eq("user_id", userId),
   ]);
-  if (profileResult.error) console.error("[Auth] Profile error:", profileResult.error);
-  if (rolesResult.error) console.error("[Auth] Roles error:", rolesResult.error);
-  console.log("[Auth] Profile:", profileResult.data, "Roles:", rolesResult.data);
   return {
     profile: profileResult.data ?? null,
     roles: rolesResult.data?.map((r: { role: string }) => r.role) ?? [],
