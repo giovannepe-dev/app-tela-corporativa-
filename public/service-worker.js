@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nexdisplay-v3';
+const CACHE_NAME = 'nexdisplay-v4';
 const STATIC_ASSETS = [
   '/',
   '/offline',
@@ -36,6 +36,9 @@ self.addEventListener('fetch', (event) => {
 
   // Never cache OAuth routes
   if (url.pathname.startsWith('/~oauth')) return;
+
+  // Let external CDNs (fonts, etc.) bypass the SW entirely
+  if (url.hostname !== self.location.hostname) return;
 
   // API / Supabase calls: network-first
   if (url.pathname.startsWith('/rest/') || url.hostname.includes('supabase')) {
@@ -80,7 +83,9 @@ self.addEventListener('fetch', (event) => {
 
   // Default: network with cache fallback
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request).catch(() =>
+      caches.match(request).then((cached) => cached || new Response('', { status: 408 }))
+    )
   );
 });
 
