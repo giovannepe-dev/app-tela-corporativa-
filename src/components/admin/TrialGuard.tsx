@@ -17,12 +17,13 @@ interface CompanyPlan {
 }
 
 export default function TrialGuard({ children }: { children: React.ReactNode }) {
-  const { profile, roles, signOut } = useAuth();
+  const { profile, roles, signOut, loading: authLoading } = useAuth();
   const [company, setCompany] = useState<CompanyPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
+    if (authLoading) return;
     if (!profile?.company_id) { setLoading(false); return; }
     if (roles.includes("super_admin")) { setLoading(false); return; }
 
@@ -36,7 +37,7 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [profile?.company_id, roles]);
+  }, [profile?.company_id, roles, authLoading]);
 
   // Update countdown every second
   useEffect(() => {
