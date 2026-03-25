@@ -32,7 +32,7 @@ const navItems = [
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const { profile, roles, signOut } = useAuth();
+  const { profile, roles, signOut, loading: authLoading } = useAuth();
   useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const allNavItems = [
     ...navItems,
     ...(isSuperAdmin ? [{ to: "/admin/access-requests", icon: UserCheck, label: "Solicitações" }] : []),
-  ].filter(item => canAccessRoute(item.to, roles));
+  ].filter(item => authLoading || roles.length === 0 || canAccessRoute(item.to, roles));
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
