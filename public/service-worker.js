@@ -7,12 +7,11 @@ const STATIC_ASSETS = [
   '/icons/icon-512.png',
 ];
 
-// Install: cache core assets — do NOT call skipWaiting here
-// so the new SW enters "waiting" state and triggers the update popup
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
+  self.skipWaiting();
 });
 
 // Activate: clean old caches
