@@ -18,7 +18,7 @@ interface CompanyPlan {
 }
 
 export default function TrialGuard({ children }: { children: React.ReactNode }) {
-  const { profile, roles, signOut, loading: authLoading, user } = useAuth();
+  const { profile, roles, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [company, setCompany] = useState<CompanyPlan | null>(null);
   const [companyLoaded, setCompanyLoaded] = useState(false);
@@ -27,8 +27,6 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (authLoading) return;
-    // User is logged in but profile hasn't been fetched from DB yet — keep waiting
-    if (user && !profile) return;
     if (!profile?.company_id) { setLoading(false); return; }
     if (roles.includes("super_admin")) { setLoading(false); return; }
 
@@ -43,7 +41,7 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
         setLoading(false);
       })
       .catch(() => { setCompanyLoaded(true); setLoading(false); });
-  }, [profile?.company_id, roles, authLoading, user]);
+  }, [profile?.company_id, roles, authLoading]);
 
   // Update countdown every second
   useEffect(() => {
