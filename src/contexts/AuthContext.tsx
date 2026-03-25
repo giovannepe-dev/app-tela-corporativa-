@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 async function fetchProfileAndRoles(userId: string) {
-  const [{ data: profileData }, { data: rolesData }] = await Promise.all([
+  const [profileResult, rolesResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, company_id")
@@ -34,9 +34,12 @@ async function fetchProfileAndRoles(userId: string) {
       .select("role")
       .eq("user_id", userId),
   ]);
+  if (profileResult.error) console.error("[Auth] Profile error:", profileResult.error);
+  if (rolesResult.error) console.error("[Auth] Roles error:", rolesResult.error);
+  console.log("[Auth] Profile:", profileResult.data, "Roles:", rolesResult.data);
   return {
-    profile: profileData ?? null,
-    roles: rolesData?.map((r: { role: string }) => r.role) ?? [],
+    profile: profileResult.data ?? null,
+    roles: rolesResult.data?.map((r: { role: string }) => r.role) ?? [],
   };
 }
 
