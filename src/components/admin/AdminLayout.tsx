@@ -56,9 +56,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   const SidebarContent = () => (
     <>
-      <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-        <img src={nexLogo} alt="NexDisplay" className="h-8 object-contain" />
-        {!collapsed && <span className="font-bold text-sm text-sidebar-foreground whitespace-nowrap">NexDisplay</span>}
+      <div className="p-4 flex items-center border-b border-sidebar-border">
+        <img src={nexLogo} alt="NexDisplay" className={cn("object-contain", collapsed ? "h-8" : "h-8")} />
       </div>
 
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
