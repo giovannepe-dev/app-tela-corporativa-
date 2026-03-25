@@ -64,7 +64,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      // Force token refresh so app_metadata changes (e.g. role) are reflected immediately
+      let session = initialSession;
+      if (initialSession) {
+        try {
+          const { data } = await supabase.auth.refreshSession();
+          if (data.session) session = data.session;
+        } catch (_) { /* use initial session */ }
+      }
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
