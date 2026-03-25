@@ -190,7 +190,8 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
 
   const getProxyUrl = (rawUrl: string): string => {
     const base = import.meta.env.VITE_SUPABASE_URL;
-    return `${base}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}`;
+    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    return `${base}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}&apikey=${key}`;
   };
 
   if (!url || url === "https://") {
