@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import nexLogo from "@/assets/nexdisplay-logo.png";
+import nexLogo from "@/assets/nexdisplay-logo.svg";
 import {
   LayoutDashboard, Monitor, MapPin, Users, Settings, LogOut,
   ChevronLeft, ChevronRight, Bell, ListOrdered, Menu, Layers, ListVideo,
