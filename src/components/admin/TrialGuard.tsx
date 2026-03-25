@@ -34,7 +34,8 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
       .then(({ data }) => {
         setCompany(data as CompanyPlan | null);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [profile?.company_id, roles]);
 
   // Update countdown every second

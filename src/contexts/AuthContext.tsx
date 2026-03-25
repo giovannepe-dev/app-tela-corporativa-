@@ -48,25 +48,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
 
   useEffect(() => {
+    let initialized = false;
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (initialized) return;
+      initialized = true;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        const { profile, roles } = await fetchProfileAndRoles(session.user.id);
-        setProfile(profile);
-        setRoles(roles);
+        try {
+          const { profile, roles } = await fetchProfileAndRoles(session.user.id);
+          setProfile(profile);
+          setRoles(roles);
+        } catch (e) {
+          console.error("Failed to fetch profile/roles:", e);
+        }
       }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!initialized) { initialized = true; }
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          const { profile, roles } = await fetchProfileAndRoles(session.user.id);
-          setProfile(profile);
-          setRoles(roles);
+          try {
+            const { profile, roles } = await fetchProfileAndRoles(session.user.id);
+            setProfile(profile);
+            setRoles(roles);
+          } catch (e) {
+            console.error("Failed to fetch profile/roles:", e);
+          }
         } else {
           setProfile(null);
           setRoles([]);
