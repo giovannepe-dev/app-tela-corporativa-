@@ -22,6 +22,14 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+function getRolesFromSession(user: User): string[] {
+  const appMeta = user.app_metadata ?? {};
+  const role = appMeta.role;
+  if (typeof role === "string" && role) return [role];
+  if (Array.isArray(appMeta.roles)) return appMeta.roles;
+  return [];
+}
+
 async function fetchProfileAndRoles(userId: string) {
   const [profileResult, rolesResult] = await Promise.all([
     supabase
@@ -60,10 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        // Set roles from JWT immediately so TrialGuard doesn't flash the approval screen
+        const jwtRoles = getRolesFromSession(session.user);
+        if (jwtRoles.length > 0) setRoles(jwtRoles);
         try {
           const { profile, roles } = await fetchProfileAndRoles(session.user.id);
           setProfile(profile);
-          setRoles(roles);
+          const merged = Array.from(new Set([...jwtRoles, ...roles]));
+          setRoles(merged);
         } catch (e) {
           console.error("Failed to fetch profile/roles:", e);
         }
@@ -76,10 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
+          // Set roles from JWT immediately
+          const jwtRoles = getRolesFromSession(session.user);
+          if (jwtRoles.length > 0) setRoles(jwtRoles);
           try {
             const { profile, roles } = await fetchProfileAndRoles(session.user.id);
             setProfile(profile);
-            setRoles(roles);
+            const merged = Array.from(new Set([...jwtRoles, ...roles]));
+            setRoles(merged);
           } catch (e) {
             console.error("Failed to fetch profile/roles:", e);
           }
