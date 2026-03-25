@@ -153,8 +153,6 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const scrollX = props.scrollX ?? 0;
   const scrollY = props.scrollY ?? 0;
   const [debouncedUrl, setDebouncedUrl] = useState(url);
-  const [proxyHtml, setProxyHtml] = useState<string | null>(null);
-  const fetchedUrlRef = React.useRef<string>("");
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedUrl(url), 800);
@@ -190,35 +188,10 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     }
   };
 
-  // Fetch proxied HTML once per unique URL
-  useEffect(() => {
-    const normalizedUrl = debouncedUrl.trim();
-    if (!normalizedUrl || normalizedUrl === "https://" || isEmbeddable(normalizedUrl)) {
-      setProxyHtml(null);
-      fetchedUrlRef.current = "";
-      return;
-    }
-    // Don't re-fetch if already fetched this URL
-    if (fetchedUrlRef.current === normalizedUrl) return;
-
-    let cancelled = false;
-    const fetchProxy = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('proxy-url', {
-          body: { url: normalizedUrl },
-        });
-        if (cancelled) return;
-        if (!error && data?.html) {
-          setProxyHtml(data.html);
-          fetchedUrlRef.current = normalizedUrl;
-        }
-      } catch {
-        // ignore
-      }
-    };
-    fetchProxy();
-    return () => { cancelled = true; };
-  }, [debouncedUrl]);
+  const getProxyUrl = (rawUrl: string): string => {
+    const base = import.meta.env.VITE_SUPABASE_URL;
+    return `${base}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}`;
+  };
 
   if (!url || url === "https://") {
     return (
@@ -236,7 +209,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const normalizedDebouncedUrl = debouncedUrl.trim();
   const embeddable = isEmbeddable(normalizedDebouncedUrl);
 
-  // Embeddable sites: use direct src
+  // Embeddable sites (YouTube, etc.): use direct embed URL
   if (embeddable) {
     const iframeSrc = getEmbedUrl(normalizedDebouncedUrl);
     return (
@@ -259,19 +232,13 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     );
   }
 
-  // Player mode: use proxied srcDoc (same strategy as editor) to avoid gateway CSP/source-code rendering issues
-  if (!proxyHtml) {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-black/20">
-        <span className="text-white/40 text-sm">Carregando página...</span>
-      </div>
-    );
-  }
-
+  // All other URLs: use proxy-url GET endpoint directly as iframe src
+  const iframeSrc = normalizedDebouncedUrl ? getProxyUrl(normalizedDebouncedUrl) : "";
   return (
     <div className="h-full w-full overflow-hidden relative">
       <iframe
-        srcDoc={proxyHtml}
+        key={iframeSrc}
+        src={iframeSrc}
         className="border-0 absolute"
         allow="autoplay; encrypted-media; fullscreen; speaker"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
