@@ -18,14 +18,17 @@ interface CompanyPlan {
 }
 
 export default function TrialGuard({ children }: { children: React.ReactNode }) {
-  const { profile, roles, signOut, loading: authLoading } = useAuth();
+  const { profile, roles, signOut, loading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const [company, setCompany] = useState<CompanyPlan | null>(null);
+  const [companyLoaded, setCompanyLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     if (authLoading) return;
+    // User is logged in but profile hasn't been fetched from DB yet — keep waiting
+    if (user && !profile) return;
     if (!profile?.company_id) { setLoading(false); return; }
     if (roles.includes("super_admin")) { setLoading(false); return; }
 
@@ -36,10 +39,11 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
       .single()
       .then(({ data }) => {
         setCompany(data as CompanyPlan | null);
+        setCompanyLoaded(true);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [profile?.company_id, roles, authLoading]);
+      .catch(() => { setCompanyLoaded(true); setLoading(false); });
+  }, [profile?.company_id, roles, authLoading, user]);
 
   // Update countdown every second
   useEffect(() => {
@@ -58,8 +62,8 @@ export default function TrialGuard({ children }: { children: React.ReactNode }) 
   // Super admin bypass
   if (roles.includes("super_admin")) return <>{children}</>;
 
-  // No company linked — block access
-  if (!profile?.company_id || !company) {
+  // No company linked — only block after company fetch confirmed nothing was found
+  if (companyLoaded && (!profile?.company_id || !company)) {
     return (
       <div className="min-h-screen gradient-nex-dark flex items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[128px]" />
