@@ -196,6 +196,27 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     return `${base}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}&apikey=${key}`;
   };
 
+  const normalizedDebouncedUrl = debouncedUrl.trim();
+  const embeddable = isEmbeddable(normalizedDebouncedUrl);
+
+  // ALL hooks must be declared before any conditional return
+  useEffect(() => {
+    if (!normalizedDebouncedUrl || embeddable) {
+      setProxyHtml(null);
+      setProxyLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setProxyHtml(null);
+    setProxyLoading(true);
+    fetch(getProxyUrl(normalizedDebouncedUrl))
+      .then(r => r.text())
+      .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
+      .catch(() => { if (!cancelled) setProxyLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedDebouncedUrl, embeddable]);
+
   if (!url || url === "https://") {
     return (
       <div className="h-full w-full flex items-center justify-center border border-dashed border-white/20 rounded bg-black/20">
@@ -208,9 +229,6 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
       </div>
     );
   }
-
-  const normalizedDebouncedUrl = debouncedUrl.trim();
-  const embeddable = isEmbeddable(normalizedDebouncedUrl);
 
   // Embeddable sites (YouTube, etc.): use direct embed URL
   if (embeddable) {
@@ -234,20 +252,6 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
       </div>
     );
   }
-
-  // All other URLs: fetch HTML via proxy and inject via srcdoc for reliable rendering
-  useEffect(() => {
-    if (!normalizedDebouncedUrl || embeddable) return;
-    let cancelled = false;
-    setProxyHtml(null);
-    setProxyLoading(true);
-    fetch(getProxyUrl(normalizedDebouncedUrl))
-      .then(r => r.text())
-      .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
-      .catch(() => { if (!cancelled) setProxyLoading(false); });
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normalizedDebouncedUrl, embeddable]);
 
   if (proxyLoading && !proxyHtml) {
     return (
