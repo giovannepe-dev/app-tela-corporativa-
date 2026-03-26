@@ -183,7 +183,7 @@ export default function WidgetProperties({ widget, onUpdate, onDelete, onDuplica
             <div><Label className={labelClasses}>Velocidade</Label><Slider value={[widget.props.speed ?? 60]} onValueChange={v => updateProp("speed", v[0])} min={10} max={200} /></div>
             <div><Label className={labelClasses}>Tamanho da fonte</Label><Input type="number" value={widget.props.fontSize} onChange={e => updateProp("fontSize", +e.target.value)} className={inputClasses} /></div>
             <div><Label className={labelClasses}>Cor do texto</Label><Input type="color" value={widget.props.color} onChange={e => updateProp("color", e.target.value)} className="h-8 w-full" /></div>
-            <div><Label className={labelClasses}>Cor de fundo</Label><Input value={widget.props.backgroundColor} onChange={e => updateProp("backgroundColor", e.target.value)} className={inputClasses} /></div>
+            <div><Label className={labelClasses}>Cor de fundo</Label><Input type="color" value={widget.props.backgroundColor} onChange={e => updateProp("backgroundColor", e.target.value)} className="h-8 w-full" /></div>
           </div>
         )}
 
