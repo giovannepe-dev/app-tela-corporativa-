@@ -34,9 +34,13 @@ export default function YoutubeWidgetPlayer({ props }: YoutubeWidgetProps) {
     if (playlist) {
       // Se tem playlist, usa playlist mode
       url += `?listType=playlist&list=${playlist}&autoplay=${autoplay}&controls=${controls}&loop=${loop}`;
+      // Adicionar mute se autoplay está ligado (navegadores bloqueiam autoplay com som)
+      if (autoplay === 1) url += "&mute=1";
     } else if (videoId) {
       // Se tem videoId específico
       url += `${videoId}?autoplay=${autoplay}&controls=${controls}&loop=${loop}`;
+      // Adicionar mute se autoplay está ligado (navegadores bloqueiam autoplay com som)
+      if (autoplay === 1) url += "&mute=1";
     }
 
     return url;
