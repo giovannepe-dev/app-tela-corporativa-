@@ -60,5 +60,37 @@
       "url": "/?shortcut=units",
       "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
-  ]
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "nexdisplay",
+      "url": "/?protocol=%s"
+    },
+    {
+      "protocol": "web+nexdisplay",
+      "url": "/?protocol=%s"
+    }
+  ],
+  "note_taking": {
+    "new_note_url": "/?action=new-note"
+  },
+  "edge_side_panel": {
+    "preferred_width": 346
+  },
+  "share_target": {
+    "action": "/?action=share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "image",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  }
 }

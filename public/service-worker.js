@@ -94,3 +94,162 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// ==============================================================
+// ADVANCED PWA FEATURES
+// ==============================================================
+
+// Background Sync Handler
+self.addEventListener('sync', (event) => {
+  console.log(`[SW] Background sync event: ${event.tag}`);
+
+  if (event.tag === 'sync-widgets') {
+    event.waitUntil(
+      (async () => {
+        try {
+          // Fetch and sync widgets
+          const response = await fetch('/api/widgets', {
+            headers: { 'X-Background-Sync': 'true' }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            // Store in cache for app to pick up
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put('/api/widgets', new Response(JSON.stringify(data)));
+            console.log('[SW] Widgets synced');
+          }
+        } catch (err) {
+          console.error('[SW] Widget sync failed:', err);
+          throw err; // Retry later
+        }
+      })()
+    );
+  } else if (event.tag === 'sync-units') {
+    event.waitUntil(
+      (async () => {
+        try {
+          // Fetch and sync units
+          const response = await fetch('/api/units', {
+            headers: { 'X-Background-Sync': 'true' }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            // Store in cache for app to pick up
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put('/api/units', new Response(JSON.stringify(data)));
+            console.log('[SW] Units synced');
+          }
+        } catch (err) {
+          console.error('[SW] Unit sync failed:', err);
+          throw err; // Retry later
+        }
+      })()
+    );
+  }
+});
+
+// Periodic Background Sync Handler
+self.addEventListener('periodicsync', (event) => {
+  console.log(`[SW] Periodic sync event: ${event.tag}`);
+
+  if (event.tag === 'sync-widgets') {
+    event.waitUntil(
+      (async () => {
+        try {
+          const response = await fetch('/api/widgets');
+          if (response.ok) {
+            // Notify clients of update
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+              client.postMessage({
+                type: 'WIDGETS_UPDATED',
+                data: await response.json()
+              });
+            });
+          }
+        } catch (err) {
+          console.error('[SW] Periodic widget sync failed:', err);
+        }
+      })()
+    );
+  } else if (event.tag === 'sync-units') {
+    event.waitUntil(
+      (async () => {
+        try {
+          const response = await fetch('/api/units');
+          if (response.ok) {
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+              client.postMessage({
+                type: 'UNITS_UPDATED',
+                data: await response.json()
+              });
+            });
+          }
+        } catch (err) {
+          console.error('[SW] Periodic unit sync failed:', err);
+        }
+      })()
+    );
+  }
+});
+
+// Push Notification Handler
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push event received');
+
+  let notificationData = {
+    title: 'NEXDISPLAY Notificação',
+    options: {
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-96.png',
+    }
+  };
+
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      notificationData.title = data.title || notificationData.title;
+      notificationData.options = {
+        ...notificationData.options,
+        body: data.body,
+        tag: data.tag || 'nexdisplay-notification',
+        data: data.data || {},
+      };
+    } catch (err) {
+      notificationData.options.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(
+      notificationData.title,
+      notificationData.options
+    )
+  );
+});
+
+// Push Notification Click Handler
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.notification.tag);
+
+  event.notification.close();
+
+  const data = event.notification.data || {};
+  const targetUrl = data.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clients) => {
+      // Check if app is already open
+      for (let i = 0; i < clients.length; i++) {
+        if (clients[i].url === targetUrl && 'focus' in clients[i]) {
+          return clients[i].focus();
+        }
+      }
+      // Otherwise open new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
