@@ -199,10 +199,22 @@ Deno.serve(async (req) => {
       fetchHeaders['Cookie'] = clientCookies;
     }
 
-    const response = await fetch(targetUrl, {
-      headers: fetchHeaders,
-      redirect: 'follow',
-    });
+    // For non-HTML endpoints (Socket.IO polling, APIs), forward method and body
+    // so POST heartbeats and data-sends reach the target correctly.
+    const fetchInit: RequestInit = { headers: fetchHeaders, redirect: 'follow' };
+    if (prefersNonHtml && req.method !== 'GET' && req.method !== 'HEAD') {
+      fetchInit.method = req.method;
+      try {
+        const bodyBytes = await req.arrayBuffer();
+        if (bodyBytes.byteLength > 0) {
+          fetchInit.body = bodyBytes;
+          const clientCT = req.headers.get('content-type');
+          if (clientCT) fetchHeaders['Content-Type'] = clientCT;
+        }
+      } catch (_) {}
+    }
+
+    const response = await fetch(targetUrl, fetchInit);
 
     // Extract Set-Cookie headers from target response
     const setCookies = extractSetCookies(response);
@@ -405,17 +417,79 @@ Deno.serve(async (req) => {
         });
       } catch (_) {}
 
+      // Override window.location properties so Socket.IO and other scripts
+      // that use window.location.host to determine their server URL connect
+      // to the correct target server, not the srcdoc iframe's parent host.
       try {
+        var _parsedTarget = new URL(targetOrigin);
+        var _targetHost = _parsedTarget.host;
+        var _targetHostname = _parsedTarget.hostname;
+        var _targetPort = _parsedTarget.port;
+        var _targetProtocol = _parsedTarget.protocol;
+        var _targetPathOnly = targetPath.split('?')[0].split('#')[0];
+        var _targetSearch = targetPath.includes('?') ? '?' + targetPath.split('?').slice(1).join('?').split('#')[0] : '';
+        var _targetHash = targetPath.includes('#') ? '#' + targetPath.split('#').slice(1).join('#') : '';
+
         var locationProto = Object.getPrototypeOf(window.location);
-        var hrefDescriptor = Object.getOwnPropertyDescriptor(locationProto, 'href');
-        if (hrefDescriptor && hrefDescriptor.configurable) {
-          Object.defineProperty(locationProto, 'href', {
-            configurable: true,
-            enumerable: hrefDescriptor.enumerable === true,
-            get: function() { return __proxyHrefValue; },
-            set: function(nextUrl) { window.__proxySetHref(nextUrl); },
-          });
-        }
+        var _locOverrides = {
+          host: function() { return _targetHost; },
+          hostname: function() { return _targetHostname; },
+          port: function() { return _targetPort; },
+          protocol: function() { return _targetProtocol; },
+          origin: function() { return targetOrigin; },
+          pathname: function() { return _targetPathOnly; },
+          search: function() { return _targetSearch; },
+          hash: function() { return _targetHash; },
+          href: function() { return __proxyHrefValue; },
+        };
+        Object.keys(_locOverrides).forEach(function(prop) {
+          var desc = Object.getOwnPropertyDescriptor(locationProto, prop);
+          if (desc && desc.configurable) {
+            Object.defineProperty(locationProto, prop, {
+              configurable: true,
+              enumerable: desc.enumerable === true,
+              get: _locOverrides[prop],
+              set: prop === 'href' ? function(v) { window.__proxySetHref(v); } : undefined,
+            });
+          }
+        });
+      } catch (_) {}
+
+      // Block direct WebSocket connections so Socket.IO falls back to XHR polling.
+      // Polling requests are intercepted by our XHR proxy and forwarded to the target.
+      try {
+        var _OrigWS = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          // Create a fake closed WebSocket so Socket.IO's error handler fires
+          // and it falls back to long-polling transport.
+          var _fakeWs = {
+            readyState: 3,
+            url: String(url),
+            protocol: '',
+            binaryType: 'blob',
+            bufferedAmount: 0,
+            extensions: '',
+            onopen: null, onerror: null, onclose: null, onmessage: null,
+            close: function() {},
+            send: function() {},
+            addEventListener: function(type, fn) {
+              if (type === 'error' || type === 'close') {
+                setTimeout(function() { try { fn(new Event(type)); } catch(_) {} }, 10);
+              }
+            },
+            removeEventListener: function() {},
+            dispatchEvent: function() { return true; },
+          };
+          setTimeout(function() {
+            try { if (_fakeWs.onerror) _fakeWs.onerror(new Event('error')); } catch(_) {}
+            try { if (_fakeWs.onclose) _fakeWs.onclose(new CloseEvent('close', { code: 1006 })); } catch(_) {}
+          }, 10);
+          return _fakeWs;
+        };
+        window.WebSocket.CONNECTING = 0;
+        window.WebSocket.OPEN = 1;
+        window.WebSocket.CLOSING = 2;
+        window.WebSocket.CLOSED = 3;
       } catch (_) {}
 
       try { history.replaceState(null, '', targetPath); } catch(_) {}
