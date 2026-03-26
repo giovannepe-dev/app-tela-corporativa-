@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import nexLogo from "@/assets/nexdisplay-logo.svg";
+import nexLogo from "@/assets/nexdisplay-logo.png";
 import { Loader2, Mail, Lock, User, Building2, Phone, CheckCircle2, MessageCircle } from "lucide-react";
 
 export default function Auth() {

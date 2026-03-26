@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import nexLogo from "@/assets/nexdisplay-logo.svg";
+import nexLogo from "@/assets/nexdisplay-logo.png";
 import { Monitor, ListOrdered, Shield, Zap, ArrowRight, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
