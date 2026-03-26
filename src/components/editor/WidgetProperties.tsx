@@ -310,6 +310,13 @@ export default function WidgetProperties({ widget, onUpdate, onDelete, onDuplica
             </div>
             <div className="flex items-center gap-2"><Switch checked={!!widget.props.directMode} onCheckedChange={v => updateProp("directMode", v)} /><Label className={labelClasses}>Modo Direto (sem proxy)</Label></div>
             {widget.props.directMode && <p className="text-xs text-muted-foreground">Carrega a URL diretamente no iframe. Use quando o site bloqueie o proxy ou precise de login do navegador.</p>}
+            {!widget.props.directMode && (
+              <div>
+                <Label className={labelClasses}>Cookie de sessão (opcional)</Label>
+                <Input value={widget.props.sessionCookie ?? ""} onChange={e => updateProp("sessionCookie", e.target.value)} className={inputClasses} placeholder="Ex: PHPSESSID=abc123..." />
+                <p className="text-xs text-muted-foreground mt-1">Se o site precisar de login: F12 → Application → Cookies → copie o valor do cookie de sessão.</p>
+              </div>
+            )}
             <div className="flex items-center gap-2"><Switch checked={!widget.props.muted} onCheckedChange={v => updateProp("muted", !v)} /><Label className={labelClasses}>Som ativado</Label></div>
             <div>
               <Label className={labelClasses}>Atualizar a cada (segundos)</Label>

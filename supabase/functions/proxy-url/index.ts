@@ -192,9 +192,12 @@ Deno.serve(async (req) => {
     const clientCookies = req.headers.get('cookie') || '';
     const targetDomain = parsedTargetUrl.hostname;
 
+    // ext_cookie: manually supplied session cookie from widget settings
+    const extCookie = reqUrl.searchParams.get('ext_cookie') || '';
+
     // Include any previously cached session cookies for this domain
     const cachedSessionCookies = sessionCookieStore.get(targetDomain) || '';
-    const combinedClientCookies = [clientCookies, cachedSessionCookies].filter(Boolean).join('; ');
+    const combinedClientCookies = [clientCookies, cachedSessionCookies, extCookie].filter(Boolean).join('; ');
 
     const fetchHeaders: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',

@@ -193,7 +193,8 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const getProxyUrl = (rawUrl: string): string => {
     const base = import.meta.env.VITE_SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    return `${base}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}&apikey=${key}`;
+    const cookieParam = props.sessionCookie ? `&ext_cookie=${encodeURIComponent(props.sessionCookie)}` : "";
+    return `${base}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}&apikey=${key}${cookieParam}`;
   };
 
   const normalizedDebouncedUrl = debouncedUrl.trim();
