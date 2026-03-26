@@ -7,6 +7,7 @@ interface YoutubeWidgetProps {
     autoplay?: boolean;
     controls?: boolean;
     loop?: boolean;
+    muted?: boolean;
   };
 }
 
@@ -26,6 +27,7 @@ export default function YoutubeWidgetPlayer({ props }: YoutubeWidgetProps) {
   const autoplay = props.autoplay !== false ? 1 : 0;
   const controls = props.controls !== false ? 1 : 0;
   const loop = props.loop === true ? 1 : 0;
+  const muted = props.muted === true ? 1 : 0;
 
   // Construir URL do YouTube
   const embedUrl = useMemo(() => {
@@ -34,17 +36,17 @@ export default function YoutubeWidgetPlayer({ props }: YoutubeWidgetProps) {
     if (playlist) {
       // Se tem playlist, usa playlist mode
       url += `?listType=playlist&list=${playlist}&autoplay=${autoplay}&controls=${controls}&loop=${loop}`;
-      // Adicionar mute se autoplay está ligado (navegadores bloqueiam autoplay com som)
-      if (autoplay === 1) url += "&mute=1";
+      // Adicionar mute se configurado
+      if (muted === 1) url += "&mute=1";
     } else if (videoId) {
       // Se tem videoId específico
       url += `${videoId}?autoplay=${autoplay}&controls=${controls}&loop=${loop}`;
-      // Adicionar mute se autoplay está ligado (navegadores bloqueiam autoplay com som)
-      if (autoplay === 1) url += "&mute=1";
+      // Adicionar mute se configurado
+      if (muted === 1) url += "&mute=1";
     }
 
     return url;
-  }, [videoId, playlist, autoplay, controls, loop]);
+  }, [videoId, playlist, autoplay, controls, loop, muted]);
 
   if (!videoId && !playlist) {
     return (

@@ -108,7 +108,7 @@ export const WIDGET_DEFAULTS: Record<WidgetType, Partial<Widget>> = {
   youtube: {
     width: 960,
     height: 540,
-    props: { videoId: "", autoplay: true, controls: true, loop: false, playlist: "" },
+    props: { videoId: "", autoplay: true, controls: true, loop: false, playlist: "", muted: true },
     style: { opacity: 1, borderRadius: 8 },
   },
   weather: {

@@ -413,6 +413,11 @@ export default function WidgetProperties({ widget, onUpdate, onDelete, onDuplica
               <Switch checked={widget.props.loop === true} onCheckedChange={v => updateProp("loop", v)} />
               <Label className={labelClasses}>Loop</Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={widget.props.muted === true} onCheckedChange={v => updateProp("muted", v)} />
+              <Label className={labelClasses}>Sem Som</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">Desativa som do vídeo (necessário para autoplay em alguns navegadores)</p>
           </div>
         )}
       </div>
