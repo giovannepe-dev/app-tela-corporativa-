@@ -177,7 +177,10 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const scaleY = autoScaleY * zoom * zoomY;
 
   const [debouncedUrl, setDebouncedUrl] = useState(url);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [proxyHtml, setProxyHtml] = useState<string | null>(null);
+  const [proxyLoading, setProxyLoading] = useState(false);
+  // blobUrl: iframe src derived from proxyHtml — gives real-navigation rendering without srcdoc quirks
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedUrl(url), 800);
@@ -216,24 +219,51 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const normalizedDebouncedUrl = debouncedUrl.trim();
   const embeddable = isEmbeddable(normalizedDebouncedUrl);
 
-  // Build proxy GET URL — the browser navigates to this directly so the page
-  // renders exactly as in a real browser (no srcdoc quirks).
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-  const buildProxyGetUrl = (rawUrl: string): string => {
-    let u = `${supabaseUrl}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}&apikey=${encodeURIComponent(supabaseKey)}`;
-    if (props.sessionCookie) u += `&ext_cookie=${encodeURIComponent(props.sessionCookie)}`;
-    return u;
-  };
-  const proxyGetUrl = normalizedDebouncedUrl && !embeddable ? buildProxyGetUrl(normalizedDebouncedUrl) : null;
+  async function fetchViaProxy(rawUrl: string): Promise<string | null> {
+    const body: Record<string, string> = { url: rawUrl };
+    if (props.sessionCookie) body.ext_cookie = props.sessionCookie;
+    const { data, error } = await supabase.functions.invoke('proxy-url', { body });
+    if (error || !data?.html) return null;
+    return data.html as string;
+  }
 
-  // Optional periodic reload via key change (no HTML fetch needed — browser reloads iframe)
-  const refreshSecs = props.refreshInterval ?? 0;
+  // Fetch HTML via authenticated POST; convert to blob URL for real-page rendering.
   useEffect(() => {
-    if (!refreshSecs || refreshSecs <= 0) return;
-    const t = setInterval(() => setRefreshKey(k => k + 1), refreshSecs * 1000);
-    return () => clearInterval(t);
-  }, [refreshSecs]);
+    if (!normalizedDebouncedUrl || embeddable) {
+      setProxyHtml(null);
+      setProxyLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setProxyHtml(null);
+    setProxyLoading(true);
+    fetchViaProxy(normalizedDebouncedUrl)
+      .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
+      .catch(() => { if (!cancelled) setProxyLoading(false); });
+
+    const refreshSecs = props.refreshInterval ?? 0;
+    if (refreshSecs > 0) {
+      const timer = setInterval(() => {
+        if (cancelled) return;
+        fetchViaProxy(normalizedDebouncedUrl)
+          .then(html => { if (!cancelled && html) setProxyHtml(html); })
+          .catch(() => {});
+      }, refreshSecs * 1000);
+      return () => { cancelled = true; clearInterval(timer); };
+    }
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedDebouncedUrl, embeddable, props.refreshInterval, props.sessionCookie]);
+
+  // Convert proxy HTML → blob URL so the iframe performs a real navigation
+  // instead of srcDoc rendering (eliminates srcdoc CSS layout quirks).
+  useEffect(() => {
+    if (!proxyHtml) { setBlobUrl(null); return; }
+    const blob = new Blob([proxyHtml], { type: 'text/html; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    setBlobUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [proxyHtml]);
 
   const iframeStyle = {
     pointerEvents: isPlayer ? "auto" : "none" as React.CSSProperties["pointerEvents"],
@@ -285,14 +315,24 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
         />
       )}
 
-      {/* Proxy mode — load via GET URL so the browser renders the page natively */}
-      {!isEmptyUrl && !props.directMode && !embeddable && proxyGetUrl && (
+      {/* Loading state */}
+      {!isEmptyUrl && !props.directMode && !embeddable && proxyLoading && !blobUrl && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <p className="text-white/40 text-sm">Carregando...</p>
+        </div>
+      )}
+
+      {/* Proxy mode — blob URL gives real-navigation rendering (no srcdoc quirks) */}
+      {!isEmptyUrl && !props.directMode && !embeddable && (
         <iframe
-          key={`${proxyGetUrl}-${refreshKey}`}
-          src={proxyGetUrl}
+          key={normalizedDebouncedUrl}
+          src={blobUrl ?? undefined}
           className="border-0 absolute"
           allow="autoplay; encrypted-media; fullscreen; speaker"
-          style={iframeStyle}
+          style={{
+            ...iframeStyle,
+            visibility: blobUrl ? "visible" : "hidden",
+          }}
         />
       )}
     </div>
