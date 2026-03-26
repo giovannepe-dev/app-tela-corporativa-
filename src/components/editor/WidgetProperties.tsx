@@ -388,6 +388,33 @@ export default function WidgetProperties({ widget, onUpdate, onDelete, onDuplica
             <div><Label className={labelClasses}>Cor do texto</Label><Input type="color" value={widget.props.color} onChange={e => updateProp("color", e.target.value)} className="h-8 w-full" /></div>
           </div>
         )}
+
+        {widget.type === "youtube" && (
+          <div className="space-y-3">
+            <div>
+              <Label className={labelClasses}>ID do Vídeo</Label>
+              <Input value={widget.props.videoId} onChange={e => updateProp("videoId", e.target.value)} className={inputClasses} placeholder="Ex: dQw4w9WgXcQ" />
+              <p className="text-xs text-muted-foreground mt-1">ID do vídeo (últimos caracteres da URL do YouTube)</p>
+            </div>
+            <div>
+              <Label className={labelClasses}>Playlist (opcional)</Label>
+              <Input value={widget.props.playlist} onChange={e => updateProp("playlist", e.target.value)} className={inputClasses} placeholder="ID da playlist" />
+              <p className="text-xs text-muted-foreground mt-1">Use playlist OU videoId, não ambos</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={widget.props.autoplay !== false} onCheckedChange={v => updateProp("autoplay", v)} />
+              <Label className={labelClasses}>Autoplay</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={widget.props.controls !== false} onCheckedChange={v => updateProp("controls", v)} />
+              <Label className={labelClasses}>Controles</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={widget.props.loop === true} onCheckedChange={v => updateProp("loop", v)} />
+              <Label className={labelClasses}>Loop</Label>
+            </div>
+          </div>
+        )}
       </div>
     </ScrollArea>
   );
