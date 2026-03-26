@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import {
   Type, Image, Clock, QrCode, Minus, Square, Video,
-  ListOrdered, Save, ArrowLeft, ZoomIn, ZoomOut, Globe, CloudSun, Rss, Monitor
+  ListOrdered, Save, ArrowLeft, ZoomIn, ZoomOut, Globe, CloudSun, Rss, Monitor, Play
 } from "lucide-react";
 
 const SCREEN_PRESETS = [
@@ -32,6 +32,7 @@ const widgetButtons: { type: WidgetType; icon: any; label: string }[] = [
   { type: "text", icon: Type, label: "Texto" },
   { type: "image", icon: Image, label: "Imagem" },
   { type: "video", icon: Video, label: "Vídeo" },
+  { type: "youtube", icon: Play, label: "YouTube" },
   { type: "webpage", icon: Globe, label: "URL" },
   { type: "rss", icon: Rss, label: "RSS" },
   { type: "clock", icon: Clock, label: "Relógio" },
