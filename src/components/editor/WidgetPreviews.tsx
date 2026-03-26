@@ -199,33 +199,11 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const normalizedDebouncedUrl = debouncedUrl.trim();
   const embeddable = isEmbeddable(normalizedDebouncedUrl);
 
-  // ALL hooks must be declared before any conditional return
+  // Hook kept unconditionally to preserve hook order (not used for direct src mode)
   useEffect(() => {
-    if (!normalizedDebouncedUrl || embeddable) {
-      setProxyHtml(null);
-      setProxyLoading(false);
-      return;
-    }
-    let cancelled = false;
     setProxyHtml(null);
-    setProxyLoading(true);
-    fetch(getProxyUrl(normalizedDebouncedUrl))
-      .then(r => r.text())
-      .then(html => {
-        if (!cancelled) {
-          // Inject <base href> so relative URLs (CSS, JS, images) resolve from the original server
-          const withBase = html.replace(
-            /<head([^>]*)>/i,
-            `<head$1><base href="${normalizedDebouncedUrl}">`
-          );
-          setProxyHtml(/<head/i.test(html) ? withBase : `<base href="${normalizedDebouncedUrl}">${html}`);
-          setProxyLoading(false);
-        }
-      })
-      .catch(() => { if (!cancelled) setProxyLoading(false); });
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normalizedDebouncedUrl, embeddable]);
+    setProxyLoading(false);
+  }, [normalizedDebouncedUrl]);
 
   if (!url || url === "https://") {
     return (
@@ -263,22 +241,14 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     );
   }
 
-  if (proxyLoading && !proxyHtml) {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-black/20">
-        <p className="text-white/40 text-sm">Carregando...</p>
-      </div>
-    );
-  }
-
+  // Non-embeddable URLs: load directly so JS/AJAX/WebSocket work (dynamic pages)
   return (
     <div className="h-full w-full overflow-hidden relative">
       <iframe
         key={normalizedDebouncedUrl}
-        srcDoc={proxyHtml ?? undefined}
+        src={normalizedDebouncedUrl}
         className="border-0 absolute"
         allow="autoplay; encrypted-media; fullscreen; speaker"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
         style={{
           pointerEvents: isPlayer ? "auto" : "none",
           width: 1920,
