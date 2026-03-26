@@ -199,8 +199,10 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const normalizedDebouncedUrl = debouncedUrl.trim();
   const embeddable = isEmbeddable(normalizedDebouncedUrl);
 
-  // Fetch page HTML via proxy once (bypasses X-Frame-Options; proxy rewrites URLs + injects
+  // Fetch page HTML via proxy (bypasses X-Frame-Options; proxy rewrites URLs + injects
   // fetch/XHR interceptor so Socket.IO polling keeps the content updated in real-time).
+  // If refreshInterval > 0 the page is silently re-fetched at that interval without
+  // clearing the current content first (no visible flash).
   useEffect(() => {
     if (!normalizedDebouncedUrl || embeddable) {
       setProxyHtml(null);
@@ -209,6 +211,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     }
     let cancelled = false;
 
+    // Initial load — show spinner only on first fetch
     setProxyHtml(null);
     setProxyLoading(true);
     fetch(getProxyUrl(normalizedDebouncedUrl))
@@ -216,9 +219,22 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
       .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
       .catch(() => { if (!cancelled) setProxyLoading(false); });
 
+    // Optional silent background refresh (no flicker: keeps current HTML until new one arrives)
+    const refreshSecs = props.refreshInterval ?? 0;
+    if (refreshSecs > 0) {
+      const timer = setInterval(() => {
+        if (cancelled) return;
+        fetch(getProxyUrl(normalizedDebouncedUrl))
+          .then(r => r.text())
+          .then(html => { if (!cancelled) setProxyHtml(html); })
+          .catch(() => {});
+      }, refreshSecs * 1000);
+      return () => { cancelled = true; clearInterval(timer); };
+    }
+
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normalizedDebouncedUrl, embeddable]);
+  }, [normalizedDebouncedUrl, embeddable, props.refreshInterval]);
 
   if (!url || url === "https://") {
     return (
