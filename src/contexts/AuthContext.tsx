@@ -56,59 +56,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
 
   useEffect(() => {
-    // Safety net: force loading=false after 10s no matter what
-    const safetyTimeout = setTimeout(() => setLoading(false), 10000);
+    let cancelled = false;
 
-    const done = () => {
-      clearTimeout(safetyTimeout);
-      setLoading(false);
-    };
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    async function loadUserData(session: Session | null) {
+      if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
+
       if (session?.user) {
-        // Set roles from JWT immediately so TrialGuard doesn't flash the approval screen
+        // Set JWT roles immediately as fallback
         const jwtRoles = getRolesFromSession(session.user);
         if (jwtRoles.length > 0) setRoles(jwtRoles);
+
         try {
-          const { profile, roles } = await fetchProfileAndRoles(session.user.id);
-          setProfile(profile);
-          const merged = Array.from(new Set([...jwtRoles, ...roles]));
-          setRoles(merged);
+          const { profile: p, roles: dbRoles } = await fetchProfileAndRoles(session.user.id);
+          if (cancelled) return;
+          setProfile(p);
+          // Use DB roles if available, otherwise fall back to JWT roles
+          setRoles(dbRoles.length > 0 ? dbRoles : jwtRoles);
         } catch (e) {
           console.error("Failed to fetch profile/roles:", e);
+          // Keep JWT roles as fallback
         }
+      } else {
+        setProfile(null);
+        setRoles([]);
       }
-      done();
-    }).catch(done);
+    }
 
+    // Initial session load
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      await loadUserData(session);
+      if (!cancelled) setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          // Set roles from JWT immediately
-          const jwtRoles = getRolesFromSession(session.user);
-          if (jwtRoles.length > 0) setRoles(jwtRoles);
-          try {
-            const { profile, roles } = await fetchProfileAndRoles(session.user.id);
-            setProfile(profile);
-            const merged = Array.from(new Set([...jwtRoles, ...roles]));
-            setRoles(merged);
-          } catch (e) {
-            console.error("Failed to fetch profile/roles:", e);
-          }
-        } else {
-          setProfile(null);
-          setRoles([]);
-        }
-        setLoading(false);
+      async (event, session) => {
+        // Skip INITIAL_SESSION — already handled by getSession above
+        if (event === "INITIAL_SESSION") return;
+        await loadUserData(session);
       }
     );
 
     return () => {
-      clearTimeout(safetyTimeout);
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);
