@@ -30,21 +30,27 @@ function getRolesFromSession(user: User): string[] {
   return [];
 }
 
-async function fetchProfileAndRoles(userId: string) {
-  const [profileResult, rolesResult] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, email, company_id")
-      .eq("user_id", userId)
-      .single(),
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId),
+// Use raw fetch with explicit Bearer token so this never runs unauthenticated,
+// regardless of whether the supabase client's internal session is set yet.
+async function fetchProfileAndRoles(userId: string, accessToken: string) {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+  const headers = {
+    apikey: supabaseKey,
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  };
+  const [profileRes, rolesRes] = await Promise.all([
+    fetch(`${supabaseUrl}/rest/v1/profiles?select=id,full_name,email,company_id&user_id=eq.${userId}`, { headers }),
+    fetch(`${supabaseUrl}/rest/v1/user_roles?select=role&user_id=eq.${userId}`, { headers }),
   ]);
+  const profileArr = await profileRes.json();
+  const rolesArr = await rolesRes.json();
   return {
-    profile: profileResult.data ?? null,
-    roles: rolesResult.data?.map((r: { role: string }) => r.role) ?? [],
+    profile: Array.isArray(profileArr) && profileArr.length > 0
+      ? (profileArr[0] as { id: string; full_name: string | null; email: string | null; company_id: string | null })
+      : null,
+    roles: Array.isArray(rolesArr) ? rolesArr.map((r: { role: string }) => r.role) : [],
   };
 }
 
@@ -65,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const jwtRoles = getRolesFromSession(session.user);
         if (jwtRoles.length > 0) setRoles(jwtRoles);
         try {
-          const { profile: p, roles: dbRoles } = await fetchProfileAndRoles(session.user.id);
+          const { profile: p, roles: dbRoles } = await fetchProfileAndRoles(session.user.id, session.access_token);
           setProfile(p);
           setRoles(dbRoles.length > 0 ? dbRoles : jwtRoles);
         } catch (e) {
