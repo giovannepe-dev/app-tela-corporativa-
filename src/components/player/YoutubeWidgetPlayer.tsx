@@ -50,7 +50,7 @@ export default function YoutubeWidgetPlayer({ props }: YoutubeWidgetProps) {
       src={embedUrl}
       title="YouTube Video"
       frameBorder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
       allowFullScreen
       style={{ borderRadius: "8px" }}
     />
