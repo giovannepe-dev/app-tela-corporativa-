@@ -86,9 +86,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // onAuthStateChange handles subsequent events (login, logout, refresh)
     // Skip INITIAL_SESSION — already handled by getSession above
+    // Skip TOKEN_REFRESHED — only the JWT changed, profile/roles are unchanged;
+    //   re-fetching here risks resetting profile to null if the token isn't
+    //   propagated to the REST client yet.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "INITIAL_SESSION") return;
+        if (event === "TOKEN_REFRESHED") {
+          setSession(session);
+          setUser(session?.user ?? null);
+          return;
+        }
         await applySession(session);
       }
     );
