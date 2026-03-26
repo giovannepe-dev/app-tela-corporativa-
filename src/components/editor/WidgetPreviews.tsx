@@ -200,6 +200,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const embeddable = isEmbeddable(normalizedDebouncedUrl);
 
   // Fetch page HTML via proxy (bypasses X-Frame-Options; proxy rewrites URLs + injects fetch/XHR interceptor)
+  // Also auto-refreshes every 15s so real-time data (queue panels etc.) stays updated
   useEffect(() => {
     if (!normalizedDebouncedUrl || embeddable) {
       setProxyHtml(null);
@@ -207,15 +208,24 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
       return;
     }
     let cancelled = false;
+
+    const load = () => {
+      fetch(getProxyUrl(normalizedDebouncedUrl))
+        .then(r => r.text())
+        .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
+        .catch(() => { if (!cancelled) setProxyLoading(false); });
+    };
+
     setProxyHtml(null);
     setProxyLoading(true);
-    fetch(getProxyUrl(normalizedDebouncedUrl))
-      .then(r => r.text())
-      .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
-      .catch(() => { if (!cancelled) setProxyLoading(false); });
-    return () => { cancelled = true; };
+    load();
+
+    const refreshInterval = (props.refreshInterval ?? 15) * 1000;
+    const timer = setInterval(() => { if (!cancelled) load(); }, refreshInterval);
+
+    return () => { cancelled = true; clearInterval(timer); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normalizedDebouncedUrl, embeddable]);
+  }, [normalizedDebouncedUrl, embeddable, props.refreshInterval]);
 
   if (!url || url === "https://") {
     return (
