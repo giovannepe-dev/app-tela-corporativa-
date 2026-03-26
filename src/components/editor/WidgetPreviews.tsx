@@ -235,7 +235,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normalizedDebouncedUrl, embeddable, props.refreshInterval]);
+  }, [normalizedDebouncedUrl, embeddable, props.refreshInterval, props.sessionCookie]);
 
   // Direct mode: load URL straight in iframe — browser sends cookies automatically.
   // Use for sites that require session/login or block the proxy.
