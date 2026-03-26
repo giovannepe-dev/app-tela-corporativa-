@@ -7,6 +7,26 @@
  * - Share Target
  */
 
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
+
+/**
+ * Convert VAPID key from base64 to Uint8Array
+ */
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 // ==============================================================
 // 1. PUSH NOTIFICATIONS
 // ==============================================================
@@ -47,17 +67,34 @@ export async function subscribeToPushNotifications(
     // Subscribe to push
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: options.vapidPublicKey,
+      applicationServerKey: urlBase64ToUint8Array(options.vapidPublicKey),
     });
 
     console.log('Subscribed to push notifications:', subscription.endpoint);
 
-    // TODO: Send subscription to your backend
-    // await fetch('/api/subscribe-push', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(subscription),
-    // });
+    // Send subscription to backend
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.access_token) {
+        await fetch('/functions/v1/subscribe-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh') || []))),
+              auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth') || []))),
+            },
+          }),
+        });
+        console.log('Subscription sent to backend');
+      }
+    } catch (err) {
+      console.warn('Failed to send subscription to backend:', err);
+    }
 
     return subscription;
   } catch (err) {

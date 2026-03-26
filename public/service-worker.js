@@ -107,20 +107,31 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(
       (async () => {
         try {
-          // Fetch and sync widgets
-          const response = await fetch('/api/widgets', {
-            headers: { 'X-Background-Sync': 'true' }
+          // Get auth token from storage
+          const session = localStorage.getItem('auth_token') || '';
+
+          const response = await fetch('/functions/v1/sync-widgets', {
+            headers: {
+              'Authorization': `Bearer ${session}`,
+              'X-Background-Sync': 'true',
+            }
           });
+
           if (response.ok) {
             const data = await response.json();
-            // Store in cache for app to pick up
-            const cache = await caches.open(CACHE_NAME);
-            await cache.put('/api/widgets', new Response(JSON.stringify(data)));
-            console.log('[SW] Widgets synced');
+            // Notify all clients
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+              client.postMessage({
+                type: 'WIDGETS_SYNCED',
+                data: data.data,
+              });
+            });
+            console.log('[SW] Widgets synced:', data.count);
           }
         } catch (err) {
           console.error('[SW] Widget sync failed:', err);
-          throw err; // Retry later
+          throw err;
         }
       })()
     );
@@ -128,20 +139,29 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(
       (async () => {
         try {
-          // Fetch and sync units
-          const response = await fetch('/api/units', {
-            headers: { 'X-Background-Sync': 'true' }
+          const session = localStorage.getItem('auth_token') || '';
+
+          const response = await fetch('/functions/v1/sync-units', {
+            headers: {
+              'Authorization': `Bearer ${session}`,
+              'X-Background-Sync': 'true',
+            }
           });
+
           if (response.ok) {
             const data = await response.json();
-            // Store in cache for app to pick up
-            const cache = await caches.open(CACHE_NAME);
-            await cache.put('/api/units', new Response(JSON.stringify(data)));
-            console.log('[SW] Units synced');
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+              client.postMessage({
+                type: 'UNITS_SYNCED',
+                data: data.data,
+              });
+            });
+            console.log('[SW] Units synced:', data.count);
           }
         } catch (err) {
           console.error('[SW] Unit sync failed:', err);
-          throw err; // Retry later
+          throw err;
         }
       })()
     );
