@@ -260,89 +260,78 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [normalizedDebouncedUrl, embeddable, props.refreshInterval, props.sessionCookie]);
 
-  // Direct mode: load URL straight in iframe — browser sends cookies automatically.
-  // Use for sites that require session/login or block the proxy.
-  if (props.directMode && normalizedDebouncedUrl && normalizedDebouncedUrl !== "https://") {
-    return (
-      <div ref={containerRef} className="h-full w-full overflow-hidden relative">
-        <iframe
-          key={normalizedDebouncedUrl}
-          src={normalizedDebouncedUrl}
-          className="border-0 absolute"
-          allow="autoplay; encrypted-media; fullscreen; speaker"
-          style={{
-            pointerEvents: isPlayer ? "auto" : "none",
-            width: 1920,
-            height: 1080,
-            transform: `translate(${scrollX}px, ${scrollY}px) scale(${scaleX}, ${scaleY})`,
-            transformOrigin: "0 0",
-          }}
-        />
-      </div>
-    );
-  }
+  const iframeStyle = {
+    pointerEvents: isPlayer ? "auto" : "none" as React.CSSProperties["pointerEvents"],
+    width: 1920,
+    height: 1080,
+    transform: `translate(${scrollX}px, ${scrollY}px) scale(${scaleX}, ${scaleY})`,
+    transformOrigin: "0 0" as const,
+  };
 
-  if (!url || url === "https://") {
-    return (
-      <div className="h-full w-full flex items-center justify-center border border-dashed border-white/20 rounded bg-black/20">
+  const isEmptyUrl = !url || url === "https://";
+
+  // Single persistent outer wrapper so containerRef is always attached on mount,
+  // allowing the ResizeObserver to measure the container immediately.
+  return (
+    <div
+      ref={containerRef}
+      className={`h-full w-full ${isEmptyUrl ? "flex items-center justify-center border border-dashed border-white/20 rounded bg-black/20" : "overflow-hidden relative"}`}
+    >
+      {/* Empty URL placeholder */}
+      {isEmptyUrl && (
         <div className="text-center">
           <svg className="h-8 w-8 mx-auto mb-2 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
           <p className="text-white/30 text-sm">URL / Webpage</p>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Embeddable sites (YouTube, etc.): use direct embed URL
-  if (embeddable) {
-    const iframeSrc = getEmbedUrl(normalizedDebouncedUrl);
-    return (
-      <div ref={containerRef} className="h-full w-full overflow-hidden relative">
+      {/* Direct mode */}
+      {!isEmptyUrl && props.directMode && normalizedDebouncedUrl && normalizedDebouncedUrl !== "https://" && (
         <iframe
-          key={iframeSrc}
-          src={iframeSrc}
+          key={normalizedDebouncedUrl}
+          src={normalizedDebouncedUrl}
+          className="border-0 absolute"
+          allow="autoplay; encrypted-media; fullscreen; speaker"
+          style={iframeStyle}
+        />
+      )}
+
+      {/* Embeddable (YouTube, etc.) */}
+      {!isEmptyUrl && !props.directMode && embeddable && (
+        <iframe
+          key={getEmbedUrl(normalizedDebouncedUrl)}
+          src={getEmbedUrl(normalizedDebouncedUrl)}
           className="border-0 absolute"
           allow="autoplay; encrypted-media; fullscreen"
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          style={iframeStyle}
+        />
+      )}
+
+      {/* Loading state */}
+      {!isEmptyUrl && !props.directMode && !embeddable && proxyLoading && !proxyHtml && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <p className="text-white/40 text-sm">Carregando...</p>
+        </div>
+      )}
+
+      {/* Proxy srcdoc — always rendered when html is available so the iframe key
+          doesn't change on silent background refreshes */}
+      {!isEmptyUrl && !props.directMode && !embeddable && (
+        <iframe
+          key={normalizedDebouncedUrl}
+          srcDoc={proxyHtml ?? undefined}
+          className="border-0 absolute"
+          allow="autoplay; encrypted-media; fullscreen; speaker"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
           style={{
-            pointerEvents: isPlayer ? "auto" : "none",
-            width: 1920,
-            height: 1080,
-            transform: `translate(${scrollX}px, ${scrollY}px) scale(${scaleX}, ${scaleY})`,
-            transformOrigin: "0 0",
+            ...iframeStyle,
+            visibility: proxyHtml ? "visible" : "hidden",
           }}
         />
-      </div>
-    );
-  }
-
-  if (proxyLoading && !proxyHtml) {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-black/20">
-        <p className="text-white/40 text-sm">Carregando...</p>
-      </div>
-    );
-  }
-
-  // Use srcdoc: proxy already rewrites all URLs and injects fetch/XHR interceptor
-  return (
-    <div ref={containerRef} className="h-full w-full overflow-hidden relative">
-      <iframe
-        key={normalizedDebouncedUrl}
-        srcDoc={proxyHtml ?? undefined}
-        className="border-0 absolute"
-        allow="autoplay; encrypted-media; fullscreen; speaker"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
-        style={{
-          pointerEvents: isPlayer ? "auto" : "none",
-          width: 1920,
-          height: 1080,
-          transform: `translate(${scrollX}px, ${scrollY}px) scale(${scaleX}, ${scaleY})`,
-          transformOrigin: "0 0",
-        }}
-      />
+      )}
     </div>
   );
 }
