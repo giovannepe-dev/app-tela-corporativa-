@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Clock, Loader2, MessageCircle, Mail, Shield, LogOut } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import nexLogo from "@/assets/nexdisplay-logo.svg";
+import nexLogo from "@/assets/nexdisplay-logo.png";
 
 interface CompanyPlan {
   plan_type: string | null;
