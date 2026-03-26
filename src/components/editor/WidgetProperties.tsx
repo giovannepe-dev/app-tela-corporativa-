@@ -308,6 +308,8 @@ export default function WidgetProperties({ widget, onUpdate, onDelete, onDuplica
               <Input value={widget.props.url} onChange={e => updateProp("url", e.target.value)} className={inputClasses} placeholder="https://youtube.com/watch?v=..." />
               <p className="text-xs text-muted-foreground mt-1">Cole qualquer URL: site, YouTube, Google Slides, etc.</p>
             </div>
+            <div className="flex items-center gap-2"><Switch checked={!!widget.props.directMode} onCheckedChange={v => updateProp("directMode", v)} /><Label className={labelClasses}>Modo Direto (sem proxy)</Label></div>
+            {widget.props.directMode && <p className="text-xs text-muted-foreground">Carrega a URL diretamente no iframe. Use quando o site bloqueie o proxy ou precise de login do navegador.</p>}
             <div className="flex items-center gap-2"><Switch checked={!widget.props.muted} onCheckedChange={v => updateProp("muted", !v)} /><Label className={labelClasses}>Som ativado</Label></div>
             <div>
               <Label className={labelClasses}>Atualizar a cada (segundos)</Label>

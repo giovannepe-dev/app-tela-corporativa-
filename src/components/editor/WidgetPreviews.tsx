@@ -236,6 +236,28 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [normalizedDebouncedUrl, embeddable, props.refreshInterval]);
 
+  // Direct mode: load URL straight in iframe — browser sends cookies automatically.
+  // Use for sites that require session/login or block the proxy.
+  if (props.directMode && normalizedDebouncedUrl && normalizedDebouncedUrl !== "https://") {
+    return (
+      <div className="h-full w-full overflow-hidden relative">
+        <iframe
+          key={normalizedDebouncedUrl}
+          src={normalizedDebouncedUrl}
+          className="border-0 absolute"
+          allow="autoplay; encrypted-media; fullscreen; speaker"
+          style={{
+            pointerEvents: isPlayer ? "auto" : "none",
+            width: 1920,
+            height: 1080,
+            transform: `translate(${scrollX}px, ${scrollY}px) scale(${scaleX}, ${scaleY})`,
+            transformOrigin: "0 0",
+          }}
+        />
+      </div>
+    );
+  }
+
   if (!url || url === "https://") {
     return (
       <div className="h-full w-full flex items-center justify-center border border-dashed border-white/20 rounded bg-black/20">
