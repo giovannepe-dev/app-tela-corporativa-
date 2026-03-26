@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 
 
+
 export function ClockWidgetPreview({ props }: { props: Record<string, any> }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -190,15 +191,16 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     }
   };
 
-  const getProxyUrl = (rawUrl: string): string => {
-    const base = import.meta.env.VITE_SUPABASE_URL;
-    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    const cookieParam = props.sessionCookie ? `&ext_cookie=${encodeURIComponent(props.sessionCookie)}` : "";
-    return `${base}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}&apikey=${key}${cookieParam}`;
-  };
-
   const normalizedDebouncedUrl = debouncedUrl.trim();
   const embeddable = isEmbeddable(normalizedDebouncedUrl);
+
+  async function fetchViaProxy(rawUrl: string): Promise<string | null> {
+    const body: Record<string, string> = { url: rawUrl };
+    if (props.sessionCookie) body.ext_cookie = props.sessionCookie;
+    const { data, error } = await supabase.functions.invoke('proxy-url', { body });
+    if (error || !data?.html) return null;
+    return data.html as string;
+  }
 
   // Fetch page HTML via proxy (bypasses X-Frame-Options; proxy rewrites URLs + injects
   // fetch/XHR interceptor so Socket.IO polling keeps the content updated in real-time).
@@ -215,8 +217,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     // Initial load — show spinner only on first fetch
     setProxyHtml(null);
     setProxyLoading(true);
-    fetch(getProxyUrl(normalizedDebouncedUrl))
-      .then(r => r.text())
+    fetchViaProxy(normalizedDebouncedUrl)
       .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
       .catch(() => { if (!cancelled) setProxyLoading(false); });
 
@@ -225,9 +226,8 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     if (refreshSecs > 0) {
       const timer = setInterval(() => {
         if (cancelled) return;
-        fetch(getProxyUrl(normalizedDebouncedUrl))
-          .then(r => r.text())
-          .then(html => { if (!cancelled) setProxyHtml(html); })
+        fetchViaProxy(normalizedDebouncedUrl)
+          .then(html => { if (!cancelled && html) setProxyHtml(html); })
           .catch(() => {});
       }, refreshSecs * 1000);
       return () => { cancelled = true; clearInterval(timer); };

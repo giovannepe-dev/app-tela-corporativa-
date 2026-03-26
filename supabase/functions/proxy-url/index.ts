@@ -192,8 +192,8 @@ Deno.serve(async (req) => {
     const clientCookies = req.headers.get('cookie') || '';
     const targetDomain = parsedTargetUrl.hostname;
 
-    // ext_cookie: manually supplied session cookie from widget settings
-    const extCookie = reqUrl.searchParams.get('ext_cookie') || '';
+    // ext_cookie: manually supplied session cookie from widget settings (query param or POST body)
+    const extCookie = reqUrl.searchParams.get('ext_cookie') || (typeof requestBody?.ext_cookie === 'string' ? requestBody.ext_cookie : '') || '';
 
     // Include any previously cached session cookies for this domain
     const cachedSessionCookies = sessionCookieStore.get(targetDomain) || '';
