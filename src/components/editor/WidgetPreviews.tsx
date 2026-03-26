@@ -179,8 +179,6 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const [debouncedUrl, setDebouncedUrl] = useState(url);
   const [proxyHtml, setProxyHtml] = useState<string | null>(null);
   const [proxyLoading, setProxyLoading] = useState(false);
-  // blobUrl: iframe src derived from proxyHtml — gives real-navigation rendering without srcdoc quirks
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedUrl(url), 800);
@@ -255,15 +253,6 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [normalizedDebouncedUrl, embeddable, props.refreshInterval, props.sessionCookie]);
 
-  // Convert proxy HTML → blob URL so the iframe performs a real navigation
-  // instead of srcDoc rendering (eliminates srcdoc CSS layout quirks).
-  useEffect(() => {
-    if (!proxyHtml) { setBlobUrl(null); return; }
-    const blob = new Blob([proxyHtml], { type: 'text/html; charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    setBlobUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [proxyHtml]);
 
   const iframeStyle = {
     pointerEvents: isPlayer ? "auto" : "none" as React.CSSProperties["pointerEvents"],
@@ -316,22 +305,23 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
       )}
 
       {/* Loading state */}
-      {!isEmptyUrl && !props.directMode && !embeddable && proxyLoading && !blobUrl && (
+      {!isEmptyUrl && !props.directMode && !embeddable && proxyLoading && !proxyHtml && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
           <p className="text-white/40 text-sm">Carregando...</p>
         </div>
       )}
 
-      {/* Proxy mode — blob URL gives real-navigation rendering (no srcdoc quirks) */}
+      {/* Proxy srcDoc */}
       {!isEmptyUrl && !props.directMode && !embeddable && (
         <iframe
           key={normalizedDebouncedUrl}
-          src={blobUrl ?? undefined}
+          srcDoc={proxyHtml ?? undefined}
           className="border-0 absolute"
           allow="autoplay; encrypted-media; fullscreen; speaker"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
           style={{
             ...iframeStyle,
-            visibility: blobUrl ? "visible" : "hidden",
+            visibility: proxyHtml ? "visible" : "hidden",
           }}
         />
       )}

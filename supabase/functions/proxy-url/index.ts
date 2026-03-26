@@ -305,6 +305,7 @@ Deno.serve(async (req) => {
 
     // For HTML pages, rewrite URLs
     let html = await response.text();
+    console.log('HTML_DIAG url=' + targetUrl + ' len=' + html.length + ' hasCHAMADOS=' + html.includes('CHAMADOS') + ' hasSENHA=' + html.includes('SENHA'));
     const targetOrigin = new URL(targetUrl).origin;
     const proxyBase = getProxyBaseUrl(req);
 
@@ -568,6 +569,19 @@ Deno.serve(async (req) => {
     // Inject interceptor right after <head> (disabled in raw mode)
     if (!rawMode) {
       html = html.replace(/(<head[^>]*>)/i, `$1${interceptScript}`);
+
+      // Fix: Bootstrap's w-50 + mx-5 columns overflow the viewport when the
+      // page's own CSS override uses an ancestor selector that doesn't match
+      // the actual DOM nesting (common in sidebar admin templates).
+      // Target the columns directly by their own class combination so the fix
+      // applies regardless of nesting depth.
+      const layoutFix = `<style id="_px_lf">` +
+        `.d-flex.flex-column.w-50.h-100{` +
+          `width:48vw!important;min-width:0!important;max-width:48vw!important;` +
+          `margin:0 1vw!important;height:96vh!important;flex-shrink:0!important;` +
+          `box-sizing:border-box!important;}` +
+        `</style>`;
+      html = html.replace(/(<\/head>)/i, `${layoutFix}$1`);
     }
 
     if (queryUrl) {
