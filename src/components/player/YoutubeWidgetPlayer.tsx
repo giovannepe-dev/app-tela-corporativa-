@@ -11,7 +11,17 @@ interface YoutubeWidgetProps {
 }
 
 export default function YoutubeWidgetPlayer({ props }: YoutubeWidgetProps) {
-  const videoId = props.videoId || "";
+  // Extract video ID from URL if full URL is provided
+  const extractVideoId = (input: string): string => {
+    if (!input) return "";
+    // If it's a full YouTube URL, extract the ID
+    const urlMatch = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (urlMatch && urlMatch[1]) return urlMatch[1];
+    // Otherwise assume it's already a video ID
+    return input;
+  };
+
+  const videoId = extractVideoId(props.videoId || "");
   const playlist = props.playlist || "";
   const autoplay = props.autoplay !== false ? 1 : 0;
   const controls = props.controls !== false ? 1 : 0;

@@ -555,7 +555,15 @@ export function WeatherWidgetPreview({ props }: { props: Record<string, any> }) 
 }
 
 export function YoutubeWidgetPreview({ props }: { props: Record<string, any> }) {
-  const videoId = props.videoId || "";
+  // Extract video ID from URL if full URL is provided
+  const extractVideoId = (input: string): string => {
+    if (!input) return "";
+    const urlMatch = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (urlMatch && urlMatch[1]) return urlMatch[1];
+    return input;
+  };
+
+  const videoId = extractVideoId(props.videoId || "");
   const playlist = props.playlist || "";
 
   if (!videoId && !playlist) {
