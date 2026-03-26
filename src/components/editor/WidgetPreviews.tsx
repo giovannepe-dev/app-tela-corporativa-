@@ -153,6 +153,8 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const scrollX = props.scrollX ?? 0;
   const scrollY = props.scrollY ?? 0;
   const [debouncedUrl, setDebouncedUrl] = useState(url);
+  const [proxyHtml, setProxyHtml] = useState<string | null>(null);
+  const [proxyLoading, setProxyLoading] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedUrl(url), 800);
@@ -233,13 +235,33 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     );
   }
 
-  // All other URLs: use proxy-url GET endpoint directly as iframe src
-  const iframeSrc = normalizedDebouncedUrl ? getProxyUrl(normalizedDebouncedUrl) : "";
+  // All other URLs: fetch HTML via proxy and inject via srcdoc for reliable rendering
+  useEffect(() => {
+    if (!normalizedDebouncedUrl || embeddable) return;
+    let cancelled = false;
+    setProxyHtml(null);
+    setProxyLoading(true);
+    fetch(getProxyUrl(normalizedDebouncedUrl))
+      .then(r => r.text())
+      .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
+      .catch(() => { if (!cancelled) setProxyLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedDebouncedUrl, embeddable]);
+
+  if (proxyLoading && !proxyHtml) {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-black/20">
+        <p className="text-white/40 text-sm">Carregando...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full overflow-hidden relative">
       <iframe
-        key={iframeSrc}
-        src={iframeSrc}
+        key={normalizedDebouncedUrl}
+        srcDoc={proxyHtml ?? undefined}
         className="border-0 absolute"
         allow="autoplay; encrypted-media; fullscreen; speaker"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
