@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -149,10 +149,33 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const zoom = (props.zoom ?? 100) / 100;
   const zoomX = (props.zoomX ?? 100) / 100;
   const zoomY = (props.zoomY ?? 100) / 100;
-  const scaleX = zoom * zoomX;
-  const scaleY = zoom * zoomY;
   const scrollX = props.scrollX ?? 0;
   const scrollY = props.scrollY ?? 0;
+
+  // Auto-scale: fit the 1920×1080 iframe into the actual container size.
+  // This ensures the full page width (including right-side panels) is always
+  // visible regardless of widget size. User zoom/zoomX/zoomY are applied on top.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const r = entries[0].contentRect;
+      setContainerSize({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    // Initial measurement
+    const r = el.getBoundingClientRect();
+    if (r.width > 0) setContainerSize({ w: r.width, h: r.height });
+    return () => ro.disconnect();
+  }, []);
+
+  const autoScaleX = containerSize.w > 0 ? containerSize.w / 1920 : 1;
+  const autoScaleY = containerSize.h > 0 ? containerSize.h / 1080 : 1;
+  const scaleX = autoScaleX * zoom * zoomX;
+  const scaleY = autoScaleY * zoom * zoomY;
+
   const [debouncedUrl, setDebouncedUrl] = useState(url);
   const [proxyHtml, setProxyHtml] = useState<string | null>(null);
   const [proxyLoading, setProxyLoading] = useState(false);
@@ -241,7 +264,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   // Use for sites that require session/login or block the proxy.
   if (props.directMode && normalizedDebouncedUrl && normalizedDebouncedUrl !== "https://") {
     return (
-      <div className="h-full w-full overflow-hidden relative">
+      <div ref={containerRef} className="h-full w-full overflow-hidden relative">
         <iframe
           key={normalizedDebouncedUrl}
           src={normalizedDebouncedUrl}
@@ -276,7 +299,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   if (embeddable) {
     const iframeSrc = getEmbedUrl(normalizedDebouncedUrl);
     return (
-      <div className="h-full w-full overflow-hidden relative">
+      <div ref={containerRef} className="h-full w-full overflow-hidden relative">
         <iframe
           key={iframeSrc}
           src={iframeSrc}
@@ -305,7 +328,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
 
   // Use srcdoc: proxy already rewrites all URLs and injects fetch/XHR interceptor
   return (
-    <div className="h-full w-full overflow-hidden relative">
+    <div ref={containerRef} className="h-full w-full overflow-hidden relative">
       <iframe
         key={normalizedDebouncedUrl}
         srcDoc={proxyHtml ?? undefined}
