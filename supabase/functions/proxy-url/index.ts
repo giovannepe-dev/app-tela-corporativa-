@@ -574,12 +574,16 @@ Deno.serve(async (req) => {
       // page's own CSS override uses an ancestor selector that doesn't match
       // the actual DOM nesting (common in sidebar admin templates).
       // Target the columns directly by their own class combination so the fix
-      // applies regardless of nesting depth.
+      // applies regardless of nesting depth. Also ensure hidden content is visible.
       const layoutFix = `<style id="_px_lf">` +
         `.d-flex.flex-column.w-50.h-100{` +
           `width:48vw!important;min-width:0!important;max-width:48vw!important;` +
           `margin:0 1vw!important;height:96vh!important;flex-shrink:0!important;` +
-          `box-sizing:border-box!important;}` +
+          `box-sizing:border-box!important;overflow:auto!important;` +
+          `visibility:visible!important;display:flex!important;}` +
+        `.w-50{width:48vw!important;max-width:48vw!important;}` +
+        `[class*="CHAMADOS"]{visibility:visible!important;display:block!important;background:#222!important;border:2px solid #00ff00!important;}` +
+        `.card{visibility:visible!important;background:#1a1a1a!important;border:1px solid #666!important;}` +
         `</style>`;
       html = html.replace(/(<\/head>)/i, `${layoutFix}$1`);
     }
