@@ -1,14 +1,30 @@
 {
-  "name": "NEXDISPLAY",
-  "short_name": "NEXDISPLAY Gestão Inteligente",
-  "description": "Gestão Inteligente",
+  "name": "NEXDISPLAY - Gestão Inteligente",
+  "short_name": "NEXDISPLAY",
+  "description": "Plataforma de gestão inteligente de displays, painéis e widgets corporativos",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0B1220",
   "theme_color": "#2563EB",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
   "icons": [
     { "src": "/icons/icon-48.png", "sizes": "48x48", "type": "image/png" },
     { "src": "/icons/icon-96.png", "sizes": "72x72 96x96", "type": "image/png" },
