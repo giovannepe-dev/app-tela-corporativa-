@@ -27,7 +27,8 @@ export default function Units() {
   useEffect(() => { fetch(); }, [profile?.company_id]);
 
   const handleCreate = async () => {
-    if (!profile?.company_id || !name.trim()) return;
+    if (!name.trim()) { toast({ title: "Preencha o nome", variant: "destructive" }); return; }
+    if (!profile?.company_id) { toast({ title: "Erro", description: "Perfil não carregado. Recarregue a página.", variant: "destructive" }); return; }
     const { error } = await supabase.from("units").insert({ company_id: profile.company_id, name, address: address || null });
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else { toast({ title: "Unidade criada!" }); setDialogOpen(false); setName(""); setAddress(""); fetch(); }
