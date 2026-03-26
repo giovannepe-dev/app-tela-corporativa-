@@ -553,3 +553,30 @@ export function WeatherWidgetPreview({ props }: { props: Record<string, any> }) 
     </div>
   );
 }
+
+export function YoutubeWidgetPreview({ props }: { props: Record<string, any> }) {
+  const videoId = props.videoId || "";
+  const playlist = props.playlist || "";
+
+  if (!videoId && !playlist) {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-black rounded-lg border-2 border-dashed border-gray-600">
+        <div className="text-center">
+          <div className="text-red-500 text-4xl mb-4">▶️</div>
+          <p className="text-gray-400 text-lg">Configure Video ID ou Playlist</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full flex items-center justify-center bg-black">
+      <div className="text-center">
+        <div className="text-red-500 text-6xl mb-2">▶️</div>
+        <p className="text-white text-sm">
+          {videoId ? `Vídeo: ${videoId}` : `Playlist: ${playlist}`}
+        </p>
+      </div>
+    </div>
+  );
+}

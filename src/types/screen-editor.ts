@@ -23,6 +23,7 @@ export type WidgetType =
   | "shape"
   | "queue_widget"
   | "webpage"
+  | "youtube"
   | "weather"
   | "rss";
 
@@ -102,6 +103,12 @@ export const WIDGET_DEFAULTS: Record<WidgetType, Partial<Widget>> = {
     width: 800,
     height: 500,
     props: { url: "https://", refreshInterval: 0, muted: true },
+    style: { opacity: 1, borderRadius: 8 },
+  },
+  youtube: {
+    width: 960,
+    height: 540,
+    props: { videoId: "", autoplay: true, controls: true, loop: false, playlist: "" },
     style: { opacity: 1, borderRadius: 8 },
   },
   weather: {

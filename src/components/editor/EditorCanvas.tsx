@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { Widget } from "@/types/screen-editor";
 import {
   ClockWidgetPreview, TextWidgetPreview, TickerWidgetPreview,
-  ShapeWidgetPreview, QRCodeWidgetPreview, ImageWidgetPreview, QueueWidgetPreview, WebpageWidgetPreview, WeatherWidgetPreview, RSSWidgetPreview
+  ShapeWidgetPreview, QRCodeWidgetPreview, ImageWidgetPreview, QueueWidgetPreview, WebpageWidgetPreview, YoutubeWidgetPreview, WeatherWidgetPreview, RSSWidgetPreview
 } from "./WidgetPreviews";
 import { cn } from "@/lib/utils";
 
@@ -104,6 +104,7 @@ export default function EditorCanvas({
       case "image": return <ImageWidgetPreview props={widget.props} />;
       case "queue_widget": return <QueueWidgetPreview />;
       case "webpage": return <WebpageWidgetPreview props={widget.props} />;
+      case "youtube": return <YoutubeWidgetPreview props={widget.props} />;
       case "weather": return <WeatherWidgetPreview props={widget.props} />;
       case "rss": return <RSSWidgetPreview props={widget.props} />;
       default: return <div className="h-full w-full bg-white/10 flex items-center justify-center text-white/40 text-xs">{widget.type}</div>;

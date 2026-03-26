@@ -14,6 +14,7 @@ import {
   RSSWidgetPreview,
 } from "@/components/editor/WidgetPreviews";
 import QueueWidgetPlayer from "@/components/player/QueueWidgetPlayer";
+import YoutubeWidgetPlayer from "@/components/player/YoutubeWidgetPlayer";
 
 interface ScreenData {
   width: number;
@@ -135,6 +136,7 @@ function WidgetRenderer({ widget }: { widget: Widget }) {
       ) : null;
       break;
     case "queue_widget": inner = <QueueWidgetPlayer props={widget.props} />; break;
+    case "youtube": inner = <YoutubeWidgetPlayer props={widget.props} />; break;
     case "webpage": inner = <WebpageWidgetPreview props={widget.props} isPlayer />; break;
     case "weather": inner = <WeatherWidgetPreview props={widget.props} />; break;
     case "rss": inner = <RSSWidgetPreview props={widget.props} />; break;
