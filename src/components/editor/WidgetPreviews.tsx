@@ -211,7 +211,17 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     setProxyLoading(true);
     fetch(getProxyUrl(normalizedDebouncedUrl))
       .then(r => r.text())
-      .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
+      .then(html => {
+        if (!cancelled) {
+          // Inject <base href> so relative URLs (CSS, JS, images) resolve from the original server
+          const withBase = html.replace(
+            /<head([^>]*)>/i,
+            `<head$1><base href="${normalizedDebouncedUrl}">`
+          );
+          setProxyHtml(/<head/i.test(html) ? withBase : `<base href="${normalizedDebouncedUrl}">${html}`);
+          setProxyLoading(false);
+        }
+      })
       .catch(() => { if (!cancelled) setProxyLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
