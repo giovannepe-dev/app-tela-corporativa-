@@ -1,3 +1,7 @@
+// Session cookie cache keyed by hostname — persists within an Edge Function instance
+// so the expensive "double-fetch" to initialize a PHP/session only happens once.
+const sessionCookieStore = new Map<string, string>();
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -186,6 +190,11 @@ Deno.serve(async (req) => {
     const prefersNonHtml = isSubResource || isRealtimePolling || isVersionPath;
     // Forward cookies from client request to target
     const clientCookies = req.headers.get('cookie') || '';
+    const targetDomain = parsedTargetUrl.hostname;
+
+    // Include any previously cached session cookies for this domain
+    const cachedSessionCookies = sessionCookieStore.get(targetDomain) || '';
+    const combinedClientCookies = [clientCookies, cachedSessionCookies].filter(Boolean).join('; ');
 
     const fetchHeaders: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -194,9 +203,9 @@ Deno.serve(async (req) => {
       'Accept-Encoding': 'identity',
     };
 
-    // Forward client cookies to the target site
-    if (clientCookies) {
-      fetchHeaders['Cookie'] = clientCookies;
+    // Forward client cookies + cached session cookies to the target site
+    if (combinedClientCookies) {
+      fetchHeaders['Cookie'] = combinedClientCookies;
     }
 
     // For non-HTML endpoints (Socket.IO polling, APIs), forward method and body
@@ -214,9 +223,35 @@ Deno.serve(async (req) => {
       } catch (_) {}
     }
 
-    const response = await fetch(targetUrl, fetchInit);
+    let response = await fetch(targetUrl, fetchInit);
 
-    // Extract Set-Cookie headers from target response
+    // Cache session cookies set by the server (e.g. PHP PHPSESSID).
+    // If we had no cached session yet and the server set one, do a second
+    // request so the server sees an initialised session and returns full HTML.
+    if (!prefersNonHtml) {
+      const newSetCookies = extractSetCookies(response);
+      if (newSetCookies.length > 0) {
+        const newCookieStr = newSetCookies
+          .map(c => c.split(';')[0].trim())
+          .filter(c => c.includes('='))
+          .join('; ');
+        if (newCookieStr) {
+          sessionCookieStore.set(targetDomain, newCookieStr);
+          // Only pay the double-fetch cost when there were no cached cookies yet
+          if (!cachedSessionCookies) {
+            fetchHeaders['Cookie'] = [combinedClientCookies, newCookieStr].filter(Boolean).join('; ');
+            try {
+              const sessionResponse = await fetch(targetUrl, { headers: fetchHeaders, redirect: 'follow' });
+              if (sessionResponse.ok) {
+                response = sessionResponse;
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    }
+
+    // Extract Set-Cookie headers from final response (for forwarding to client)
     const setCookies = extractSetCookies(response);
     const rewrittenCookies = rewriteCookies(setCookies);
 
