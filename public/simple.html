@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NEXDISPLAY</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; color: #fff; font-family: Arial; }
+    .header { background: #1a1a1a; padding: 20px; border-bottom: 2px solid #4CAF50; }
+    h1 { font-size: 24px; color: #4CAF50; }
+    .content { padding: 20px; }
+    .box { background: #222; padding: 15px; margin: 10px 0; border-radius: 4px; }
+    button { background: #4CAF50; color: white; border: none; padding: 10px 20px; margin: 5px 0; cursor: pointer; }
+    button:hover { background: #45a049; }
+    .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .ok { background: #1B5E20; color: #4CAF50; }
+    .error { background: #B71C1C; color: #FF6B6B; }
+    #resultado { white-space: pre-wrap; font-size: 12px; background: #111; padding: 10px; border-radius: 4px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>NEXDISPLAY</h1>
+    <p>Sistema de Gestão de Displays</p>
+  </div>
+
+  <div class="content">
+    <div class="box">
+      <p>Status: <span class="status ok">Funcionando</span></p>
+      <p>Versão: 1.0.0</p>
+    </div>
+
+    <div class="box">
+      <h3>Testes:</h3>
+      <button onclick="testar()">Testar Conexão</button>
+      <button onclick="info()">Info do Device</button>
+      <button onclick="limpar()">Limpar</button>
+    </div>
+
+    <div id="resultado"></div>
+  </div>
+
+  <script>
+    function testar() {
+      var div = document.getElementById('resultado');
+      div.textContent = 'Testando...\n';
+
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            div.textContent += 'OK - Status: ' + xhr.status + '\n';
+            div.textContent += 'Resposta: ' + xhr.responseText.substring(0, 200) + '...';
+          } else {
+            div.textContent += 'ERRO - Status: ' + xhr.status;
+          }
+        }
+      };
+      xhr.open('GET', 'https://app-tela-corporativa.vercel.app/', true);
+      xhr.send();
+    }
+
+    function info() {
+      var div = document.getElementById('resultado');
+      div.textContent = 'User Agent:\n' + navigator.userAgent + '\n\n';
+      div.textContent += 'Plataforma: ' + navigator.platform + '\n';
+      div.textContent += 'Online: ' + (navigator.onLine ? 'Sim' : 'Nao') + '\n';
+      div.textContent += 'Idioma: ' + navigator.language + '\n';
+    }
+
+    function limpar() {
+      document.getElementById('resultado').textContent = '';
+    }
+
+    // Log na inicialização
+    console.log('NEXDISPLAY Simple Page Loaded');
+  </script>
+</body>
+</html>

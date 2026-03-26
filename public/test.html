@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXDISPLAY TEST</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      text-align: center;
+    }
+    h1 { color: #4CAF50; margin-bottom: 20px; font-size: 2em; }
+    .box {
+      background: #222;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    p { margin: 10px 0; font-size: 1.1em; }
+    .success { color: #4CAF50; }
+    .error { color: #FF6B6B; }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      margin: 5px;
+    }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✅ NEXDISPLAY - Teste OK</h1>
+
+    <div class="box">
+      <p class="success">✓ HTML carregou</p>
+      <p class="success">✓ CSS aplicado</p>
+      <p class="success">✓ JavaScript funcionando</p>
+    </div>
+
+    <div class="box">
+      <h2 style="margin-bottom: 15px;">Testes:</h2>
+      <button onclick="testarServidor()">Testar Servidor</button>
+      <button onclick="recarregar()">Ir para App Principal</button>
+    </div>
+
+    <div id="resultado" class="box" style="display:none; margin-top: 20px;">
+      <p id="mensagem"></p>
+    </div>
+  </div>
+
+  <script>
+    function testarServidor() {
+      const resultado = document.getElementById('resultado');
+      const mensagem = document.getElementById('mensagem');
+      resultado.style.display = 'block';
+      mensagem.textContent = 'Testando...';
+
+      fetch('https://app-tela-corporativa.vercel.app/')
+        .then(r => {
+          if (r.ok) {
+            mensagem.innerHTML = '<span class="success">✓ Servidor respondeu! Status: ' + r.status + '</span>';
+          } else {
+            mensagem.innerHTML = '<span class="error">✗ Erro: ' + r.status + '</span>';
+          }
+        })
+        .catch(e => {
+          mensagem.innerHTML = '<span class="error">✗ Erro: ' + e.message + '</span>';
+        });
+    }
+
+    function recarregar() {
+      window.location.href = '/';
+    }
+
+    console.log('✓ Test page loaded successfully');
+  </script>
+</body>
+</html>

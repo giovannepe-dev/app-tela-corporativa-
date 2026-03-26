@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXDISPLAY - Teste</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+      max-width: 600px;
+    }
+    h1 { color: #4CAF50; font-size: 2em; margin-bottom: 20px; }
+    .status {
+      background: #333;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-size: 1.1em;
+    }
+    .success { color: #4CAF50; }
+    .error { color: #FF6B6B; }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1em;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover { background: #45a049; }
+    pre {
+      background: #222;
+      padding: 15px;
+      border-radius: 4px;
+      text-align: left;
+      overflow: auto;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 NEXDISPLAY - Diagnóstico</h1>
+
+    <div class="status">
+      <p>✅ <span class="success">WebView funcionando!</span></p>
+      <p>A página HTML está carregando corretamente.</p>
+    </div>
+
+    <div class="status">
+      <h3>Testes:</h3>
+      <button onclick="testAPI()">Testar Conexão com Servidor</button>
+      <button onclick="testStorage()">Testar Local Storage</button>
+      <button onclick="showInfo()">Informações do Device</button>
+    </div>
+
+    <div id="result" class="status" style="display:none;">
+      <pre id="resultText"></pre>
+    </div>
+  </div>
+
+  <script>
+    function testAPI() {
+      document.getElementById('result').style.display = 'block';
+      const resultEl = document.getElementById('resultText');
+      resultEl.textContent = 'Testando conexão...';
+
+      fetch('https://app-tela-corporativa.vercel.app/')
+        .then(r => {
+          resultEl.textContent = `✅ Servidor respondeu!\nStatus: ${r.status}\nTipo: ${r.headers.get('content-type')}`;
+        })
+        .catch(e => {
+          resultEl.textContent = `❌ Erro ao conectar:\n${e.message}`;
+        });
+    }
+
+    function testStorage() {
+      document.getElementById('result').style.display = 'block';
+      const resultEl = document.getElementById('resultText');
+      try {
+        localStorage.setItem('test', 'ok');
+        const val = localStorage.getItem('test');
+        localStorage.removeItem('test');
+        resultEl.textContent = `✅ Local Storage funcionando!\nValor teste: ${val}`;
+      } catch (e) {
+        resultEl.textContent = `❌ Erro no Local Storage:\n${e.message}`;
+      }
+    }
+
+    function showInfo() {
+      document.getElementById('result').style.display = 'block';
+      const resultEl = document.getElementById('resultText');
+      resultEl.textContent = `
+User Agent: ${navigator.userAgent}
+Plataforma: ${navigator.platform}
+Online: ${navigator.onLine ? 'Sim' : 'Não'}
+Idioma: ${navigator.language}
+Memória: ${navigator.deviceMemory || 'N/A'} GB
+Cores: ${navigator.hardwareConcurrency || 'N/A'}
+      `.trim();
+    }
+
+    // Auto-test na carga
+    window.addEventListener('load', () => {
+      console.log('✅ Página carregada');
+    });
+
+    window.addEventListener('online', () => {
+      console.log('✅ Conectado à internet');
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('❌ Desconectado da internet');
+    });
+  </script>
+</body>
+</html>

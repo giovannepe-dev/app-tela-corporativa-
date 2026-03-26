@@ -1,0 +1,18 @@
+{
+  "packageId": "com.nexdisplay.app",
+  "host": "app-tela-corporativa.vercel.app",
+  "launcherName": "NEXDISPLAY",
+  "appName": "NEXDISPLAY - Gestao Inteligente",
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "minSdkVersion": 21,
+  "iconUrl": "https://app-tela-corporativa.vercel.app/icons/icon-192.png",
+  "signingKey": {
+    "path": "app.keystore",
+    "alias": "nexdisplay",
+    "keyPassword": "nexdisplay123",
+    "storePassword": "nexdisplay123"
+  },
+  "shortcuts": [],
+  "generatedFiles": []
+}

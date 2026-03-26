@@ -36,6 +36,15 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      console.log('📍 index.html loaded');
+      window.addEventListener('error', (e) => {
+        console.error('❌ Error:', e.message, e.filename, e.lineno);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        console.error('❌ Unhandled Promise:', e.reason);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
