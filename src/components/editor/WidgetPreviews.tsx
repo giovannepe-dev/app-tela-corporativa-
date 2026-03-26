@@ -565,6 +565,7 @@ export function YoutubeWidgetPreview({ props }: { props: Record<string, any> }) 
 
   const videoId = extractVideoId(props.videoId || "");
   const playlist = props.playlist || "";
+  const muted = props.muted === true ? 1 : 0;
 
   if (!videoId && !playlist) {
     return (
@@ -577,14 +578,23 @@ export function YoutubeWidgetPreview({ props }: { props: Record<string, any> }) 
     );
   }
 
+  // Build YouTube embed URL
+  let embedUrl = "https://www.youtube.com/embed/";
+  if (playlist) {
+    embedUrl += `?listType=playlist&list=${playlist}&mute=${muted}`;
+  } else if (videoId) {
+    embedUrl += `${videoId}?mute=${muted}`;
+  }
+
   return (
-    <div className="h-full w-full flex items-center justify-center bg-black">
-      <div className="text-center">
-        <div className="text-red-500 text-6xl mb-2">▶️</div>
-        <p className="text-white text-sm">
-          {videoId ? `Vídeo: ${videoId}` : `Playlist: ${playlist}`}
-        </p>
-      </div>
-    </div>
+    <iframe
+      width="100%"
+      height="100%"
+      src={embedUrl}
+      title="YouTube Video Preview"
+      frameBorder="0"
+      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      style={{ borderRadius: "8px" }}
+    />
   );
 }
