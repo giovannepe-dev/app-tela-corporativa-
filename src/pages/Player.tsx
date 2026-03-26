@@ -323,6 +323,9 @@ export default function Player() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaylist, setIsPlaylist] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track loaded IDs to avoid re-fetching on heartbeat-only device updates
+  const loadedScreenIdRef = useRef<string | null>(null);
+  const loadedPlaylistIdRef = useRef<string | null>(null);
 
   const loadDevice = useCallback(async () => {
     if (!deviceToken) return;
@@ -372,11 +375,13 @@ export default function Player() {
       if (!dev) return;
       if (dev.active_playlist_id) {
         setIsPlaylist(true);
+        loadedPlaylistIdRef.current = dev.active_playlist_id;
         loadPlaylist(dev.active_playlist_id);
       } else if (dev.active_screen_id) {
         setIsPlaylist(false);
+        loadedScreenIdRef.current = dev.active_screen_id;
         const s = await loadScreenData(dev.active_screen_id);
-        setSingleScreen(s);
+        if (s) setSingleScreen(s);
       }
     });
   }, [loadDevice, loadPlaylist]);
@@ -405,19 +410,34 @@ export default function Player() {
       }, async (payload: any) => {
         const updated = payload.new;
         setDevice(updated);
-        if (updated.active_playlist_id) {
+
+        const newPlaylistId = updated.active_playlist_id ?? null;
+        const newScreenId = updated.active_screen_id ?? null;
+
+        // Skip heartbeat-only updates (last_seen/status changes don't affect content)
+        const playlistChanged = newPlaylistId !== loadedPlaylistIdRef.current;
+        const screenChanged = newScreenId !== loadedScreenIdRef.current;
+        if (!playlistChanged && !screenChanged) return;
+
+        if (newPlaylistId) {
           setIsPlaylist(true);
           setSingleScreen(null);
-          loadPlaylist(updated.active_playlist_id);
-        } else if (updated.active_screen_id) {
+          loadedPlaylistIdRef.current = newPlaylistId;
+          loadedScreenIdRef.current = null;
+          loadPlaylist(newPlaylistId);
+        } else if (newScreenId) {
           setIsPlaylist(false);
           setPlaylistItems([]);
-          const s = await loadScreenData(updated.active_screen_id);
-          setSingleScreen(s);
+          loadedScreenIdRef.current = newScreenId;
+          loadedPlaylistIdRef.current = null;
+          const s = await loadScreenData(newScreenId);
+          if (s) setSingleScreen(s);
         } else {
           setIsPlaylist(false);
           setSingleScreen(null);
           setPlaylistItems([]);
+          loadedScreenIdRef.current = null;
+          loadedPlaylistIdRef.current = null;
         }
       })
       .subscribe();
