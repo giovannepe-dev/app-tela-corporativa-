@@ -455,42 +455,9 @@ Deno.serve(async (req) => {
         });
       } catch (_) {}
 
-      // Block direct WebSocket connections so Socket.IO falls back to XHR polling.
-      // Polling requests are intercepted by our XHR proxy and forwarded to the target.
-      try {
-        var _OrigWS = window.WebSocket;
-        window.WebSocket = function(url, protocols) {
-          // Create a fake closed WebSocket so Socket.IO's error handler fires
-          // and it falls back to long-polling transport.
-          var _fakeWs = {
-            readyState: 3,
-            url: String(url),
-            protocol: '',
-            binaryType: 'blob',
-            bufferedAmount: 0,
-            extensions: '',
-            onopen: null, onerror: null, onclose: null, onmessage: null,
-            close: function() {},
-            send: function() {},
-            addEventListener: function(type, fn) {
-              if (type === 'error' || type === 'close') {
-                setTimeout(function() { try { fn(new Event(type)); } catch(_) {} }, 10);
-              }
-            },
-            removeEventListener: function() {},
-            dispatchEvent: function() { return true; },
-          };
-          setTimeout(function() {
-            try { if (_fakeWs.onerror) _fakeWs.onerror(new Event('error')); } catch(_) {}
-            try { if (_fakeWs.onclose) _fakeWs.onclose(new CloseEvent('close', { code: 1006 })); } catch(_) {}
-          }, 10);
-          return _fakeWs;
-        };
-        window.WebSocket.CONNECTING = 0;
-        window.WebSocket.OPEN = 1;
-        window.WebSocket.CLOSING = 2;
-        window.WebSocket.CLOSED = 3;
-      } catch (_) {}
+      // WebSocket connections are left untouched: browsers already block ws:// (HTTP)
+      // connections from HTTPS pages as mixed content, so polling fallback happens
+      // automatically. The XHR interceptor above handles all polling requests.
 
       try { history.replaceState(null, '', targetPath); } catch(_) {}
       try { window.__proxyHref = targetAbsolute; } catch(_) {}
