@@ -153,8 +153,11 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const scrollY = props.scrollY ?? 0;
 
   // Auto-scale: fit the 1920×1080 iframe into the actual container size.
-  // This ensures the full page width (including right-side panels) is always
-  // visible regardless of widget size. User zoom/zoomX/zoomY are applied on top.
+  // Uses ResizeObserver only (NOT getBoundingClientRect) because the editor
+  // wraps widgets in a transform:scale(zoom) container — gBCR returns the
+  // visual size (affected by ancestor transforms) which is wrong for layout
+  // calculations, while ResizeObserver.contentRect returns the correct
+  // layout-coordinate size.
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
@@ -162,17 +165,15 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
     if (!el) return;
     const ro = new ResizeObserver(entries => {
       const r = entries[0].contentRect;
-      setContainerSize({ w: r.width, h: r.height });
+      if (r.width > 0) setContainerSize({ w: r.width, h: r.height });
     });
     ro.observe(el);
-    // Initial measurement
-    const r = el.getBoundingClientRect();
-    if (r.width > 0) setContainerSize({ w: r.width, h: r.height });
     return () => ro.disconnect();
   }, []);
 
-  const autoScaleX = containerSize.w > 0 ? containerSize.w / 1920 : 1;
-  const autoScaleY = containerSize.h > 0 ? containerSize.h / 1080 : 1;
+  const measured = containerSize.w > 0;
+  const autoScaleX = measured ? containerSize.w / 1920 : 1;
+  const autoScaleY = measured ? containerSize.h / 1080 : 1;
   const scaleX = autoScaleX * zoom * zoomX;
   const scaleY = autoScaleY * zoom * zoomY;
 
@@ -311,7 +312,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
         </div>
       )}
 
-      {/* Proxy srcDoc */}
+      {/* Proxy srcDoc — hidden until both HTML is fetched AND container is measured */}
       {!isEmptyUrl && !props.directMode && !embeddable && (
         <iframe
           key={normalizedDebouncedUrl}
@@ -321,7 +322,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
           style={{
             ...iframeStyle,
-            visibility: proxyHtml ? "visible" : "hidden",
+            visibility: proxyHtml && measured ? "visible" : "hidden",
           }}
         />
       )}
