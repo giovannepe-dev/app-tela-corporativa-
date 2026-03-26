@@ -177,8 +177,7 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const scaleY = autoScaleY * zoom * zoomY;
 
   const [debouncedUrl, setDebouncedUrl] = useState(url);
-  const [proxyHtml, setProxyHtml] = useState<string | null>(null);
-  const [proxyLoading, setProxyLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedUrl(url), 800);
@@ -217,48 +216,24 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
   const normalizedDebouncedUrl = debouncedUrl.trim();
   const embeddable = isEmbeddable(normalizedDebouncedUrl);
 
-  async function fetchViaProxy(rawUrl: string): Promise<string | null> {
-    const body: Record<string, string> = { url: rawUrl };
-    if (props.sessionCookie) body.ext_cookie = props.sessionCookie;
-    const { data, error } = await supabase.functions.invoke('proxy-url', { body });
-    if (error || !data?.html) return null;
-    return data.html as string;
-  }
+  // Build proxy GET URL — the browser navigates to this directly so the page
+  // renders exactly as in a real browser (no srcdoc quirks).
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+  const buildProxyGetUrl = (rawUrl: string): string => {
+    let u = `${supabaseUrl}/functions/v1/proxy-url?url=${encodeURIComponent(rawUrl)}&apikey=${encodeURIComponent(supabaseKey)}`;
+    if (props.sessionCookie) u += `&ext_cookie=${encodeURIComponent(props.sessionCookie)}`;
+    return u;
+  };
+  const proxyGetUrl = normalizedDebouncedUrl && !embeddable ? buildProxyGetUrl(normalizedDebouncedUrl) : null;
 
-  // Fetch page HTML via proxy (bypasses X-Frame-Options; proxy rewrites URLs + injects
-  // fetch/XHR interceptor so Socket.IO polling keeps the content updated in real-time).
-  // If refreshInterval > 0 the page is silently re-fetched at that interval without
-  // clearing the current content first (no visible flash).
+  // Optional periodic reload via key change (no HTML fetch needed — browser reloads iframe)
+  const refreshSecs = props.refreshInterval ?? 0;
   useEffect(() => {
-    if (!normalizedDebouncedUrl || embeddable) {
-      setProxyHtml(null);
-      setProxyLoading(false);
-      return;
-    }
-    let cancelled = false;
-
-    // Initial load — show spinner only on first fetch
-    setProxyHtml(null);
-    setProxyLoading(true);
-    fetchViaProxy(normalizedDebouncedUrl)
-      .then(html => { if (!cancelled) { setProxyHtml(html); setProxyLoading(false); } })
-      .catch(() => { if (!cancelled) setProxyLoading(false); });
-
-    // Optional silent background refresh (no flicker: keeps current HTML until new one arrives)
-    const refreshSecs = props.refreshInterval ?? 0;
-    if (refreshSecs > 0) {
-      const timer = setInterval(() => {
-        if (cancelled) return;
-        fetchViaProxy(normalizedDebouncedUrl)
-          .then(html => { if (!cancelled && html) setProxyHtml(html); })
-          .catch(() => {});
-      }, refreshSecs * 1000);
-      return () => { cancelled = true; clearInterval(timer); };
-    }
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normalizedDebouncedUrl, embeddable, props.refreshInterval, props.sessionCookie]);
+    if (!refreshSecs || refreshSecs <= 0) return;
+    const t = setInterval(() => setRefreshKey(k => k + 1), refreshSecs * 1000);
+    return () => clearInterval(t);
+  }, [refreshSecs]);
 
   const iframeStyle = {
     pointerEvents: isPlayer ? "auto" : "none" as React.CSSProperties["pointerEvents"],
@@ -310,26 +285,14 @@ export function WebpageWidgetPreview({ props, isPlayer }: { props: Record<string
         />
       )}
 
-      {/* Loading state */}
-      {!isEmptyUrl && !props.directMode && !embeddable && proxyLoading && !proxyHtml && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-          <p className="text-white/40 text-sm">Carregando...</p>
-        </div>
-      )}
-
-      {/* Proxy srcdoc — always rendered when html is available so the iframe key
-          doesn't change on silent background refreshes */}
-      {!isEmptyUrl && !props.directMode && !embeddable && (
+      {/* Proxy mode — load via GET URL so the browser renders the page natively */}
+      {!isEmptyUrl && !props.directMode && !embeddable && proxyGetUrl && (
         <iframe
-          key={normalizedDebouncedUrl}
-          srcDoc={proxyHtml ?? undefined}
+          key={`${proxyGetUrl}-${refreshKey}`}
+          src={proxyGetUrl}
           className="border-0 absolute"
           allow="autoplay; encrypted-media; fullscreen; speaker"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
-          style={{
-            ...iframeStyle,
-            visibility: proxyHtml ? "visible" : "hidden",
-          }}
+          style={iframeStyle}
         />
       )}
     </div>
