@@ -56,31 +56,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
 
   useEffect(() => {
-    // Safety net: force loading=false after 8s no matter what
     const safetyTimeout = setTimeout(() => setLoading(false), 8000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const jwtRoles = getRolesFromSession(session.user);
-          if (jwtRoles.length > 0) setRoles(jwtRoles);
-          try {
-            const { profile: p, roles: dbRoles } = await fetchProfileAndRoles(session.user.id);
-            setProfile(p);
-            setRoles(dbRoles.length > 0 ? dbRoles : jwtRoles);
-          } catch (e) {
-            console.error("Failed to fetch profile/roles:", e);
-          }
-        } else {
-          setProfile(null);
-          setRoles([]);
+    async function applySession(session: Session | null) {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const jwtRoles = getRolesFromSession(session.user);
+        if (jwtRoles.length > 0) setRoles(jwtRoles);
+        try {
+          const { profile: p, roles: dbRoles } = await fetchProfileAndRoles(session.user.id);
+          setProfile(p);
+          setRoles(dbRoles.length > 0 ? dbRoles : jwtRoles);
+        } catch (e) {
+          console.error("Failed to fetch profile/roles:", e);
         }
+      } else {
+        setProfile(null);
+        setRoles([]);
+      }
+    }
 
-        clearTimeout(safetyTimeout);
-        setLoading(false);
+    // getSession reads from localStorage — client ALWAYS has the token here
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      await applySession(session);
+      clearTimeout(safetyTimeout);
+      setLoading(false);
+    }).catch(() => { clearTimeout(safetyTimeout); setLoading(false); });
+
+    // onAuthStateChange handles subsequent events (login, logout, refresh)
+    // Skip INITIAL_SESSION — already handled by getSession above
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "INITIAL_SESSION") return;
+        await applySession(session);
       }
     );
 
