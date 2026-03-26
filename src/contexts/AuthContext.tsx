@@ -56,53 +56,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
 
   useEffect(() => {
-    let cancelled = false;
+    // Safety net: force loading=false after 8s no matter what
+    const safetyTimeout = setTimeout(() => setLoading(false), 8000);
 
-    async function loadUserData(session: Session | null) {
-      if (cancelled) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        // Set JWT roles immediately as fallback
-        const jwtRoles = getRolesFromSession(session.user);
-        if (jwtRoles.length > 0) setRoles(jwtRoles);
-
-        try {
-          const { profile: p, roles: dbRoles } = await fetchProfileAndRoles(session.user.id);
-          if (cancelled) return;
-          setProfile(p);
-          // Use DB roles if available, otherwise fall back to JWT roles
-          setRoles(dbRoles.length > 0 ? dbRoles : jwtRoles);
-        } catch (e) {
-          console.error("Failed to fetch profile/roles:", e);
-          // Keep JWT roles as fallback
-        }
-      } else {
-        setProfile(null);
-        setRoles([]);
-      }
-    }
-
-    // Initial session load
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      await loadUserData(session);
-      if (!cancelled) setLoading(false);
-    }).catch(() => {
-      if (!cancelled) setLoading(false);
-    });
-
-    // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        // Skip INITIAL_SESSION — already handled by getSession above
-        if (event === "INITIAL_SESSION") return;
-        await loadUserData(session);
+      async (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const jwtRoles = getRolesFromSession(session.user);
+          if (jwtRoles.length > 0) setRoles(jwtRoles);
+          try {
+            const { profile: p, roles: dbRoles } = await fetchProfileAndRoles(session.user.id);
+            setProfile(p);
+            setRoles(dbRoles.length > 0 ? dbRoles : jwtRoles);
+          } catch (e) {
+            console.error("Failed to fetch profile/roles:", e);
+          }
+        } else {
+          setProfile(null);
+          setRoles([]);
+        }
+
+        clearTimeout(safetyTimeout);
+        setLoading(false);
       }
     );
 
     return () => {
-      cancelled = true;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
