@@ -134,28 +134,59 @@ export default function Devices() {
   };
 
   const handlePairDevice = async () => {
-    if (!pairCode.trim()) return;
+    if (!pairCode.trim() || !profile?.company_id) return;
     setPairing(true);
 
     const code = pairCode.trim().toUpperCase();
 
     try {
-      console.log("🔗 Calling device-pairing with code:", code);
-      const { data, error } = await supabase.functions.invoke("device-pairing", {
-        body: { action: "pair", pairing_code: code },
-      });
+      console.log("🔗 Pairing device with code:", code);
 
-      console.log("📡 Response from Edge Function:", { data, error });
+      // Find device by pairing code
+      const { data: devices, error: findError } = await supabase
+        .from("devices")
+        .select("*")
+        .eq("pairing_code", code)
+        .eq("status", "pairing");
 
-      if (error) {
-        const errorMsg = data?.error || error?.message || "Código inválido ou expirado.";
-        console.error("❌ Pairing error:", errorMsg);
-        toast({ title: "Erro ao parear", description: errorMsg, variant: "destructive" });
-      } else if (!data || (data && !data.id)) {
-        console.error("❌ Invalid response from Edge Function:", data);
-        toast({ title: "Erro ao parear", description: data?.error || "Resposta inválida do servidor", variant: "destructive" });
+      if (findError || !devices || devices.length === 0) {
+        console.error("❌ Device not found or expired:", findError);
+        toast({ title: "Erro ao parear", description: "Código inválido ou expirado.", variant: "destructive" });
+        setPairing(false);
+        return;
+      }
+
+      const device = devices[0];
+      console.log("✅ Found device:", device.id);
+
+      // Check if code is expired
+      if (new Date(device.pairing_expires_at) < new Date()) {
+        console.error("❌ Code expired");
+        toast({ title: "Erro ao parear", description: "Código expirado.", variant: "destructive" });
+        setPairing(false);
+        return;
+      }
+
+      // Generate device token and update device
+      const deviceToken = crypto.randomUUID();
+      const { data: updated, error: updateError } = await supabase
+        .from("devices")
+        .update({
+          company_id: profile.company_id,
+          device_token: deviceToken,
+          status: "online",
+          pairing_code: null,
+          pairing_expires_at: null,
+        })
+        .eq("id", device.id)
+        .select("id, device_token, name")
+        .single();
+
+      if (updateError) {
+        console.error("❌ Update error:", updateError);
+        toast({ title: "Erro ao parear", description: updateError.message, variant: "destructive" });
       } else {
-        console.log("✅ Device paired successfully:", data);
+        console.log("✅ Device paired successfully:", updated);
         toast({ title: "Dispositivo pareado com sucesso!" });
         setPairDialogOpen(false);
         setPairCode("");
