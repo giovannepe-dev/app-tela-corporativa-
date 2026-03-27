@@ -179,11 +179,12 @@ self.addEventListener('periodicsync', (event) => {
           const response = await fetch('/api/widgets');
           if (response.ok) {
             // Notify clients of update
+            const data = await response.json();
             const clients = await self.clients.matchAll();
             clients.forEach(client => {
               client.postMessage({
                 type: 'WIDGETS_UPDATED',
-                data: await response.json()
+                data: data
               });
             });
           }
