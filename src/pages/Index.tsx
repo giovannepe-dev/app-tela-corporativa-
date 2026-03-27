@@ -1,24 +1,13 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
 import nexLogo from "@/assets/nexdisplay-logo.png";
 import { Monitor, ListOrdered, Shield, Zap, ArrowRight, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Index() {
-  const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Redirect to pairing if TV Mode is detected (only from build-time variable)
-  useEffect(() => {
-    const isTVMode = import.meta.env.VITE_TV_MODE === 'true';
-
-    if (isTVMode) {
-      console.log('📺 TV Mode detected - Redirecting to pairing screen');
-      navigate('/pair', { replace: true });
-    }
-  }, [navigate]);
   const features = [
     { icon: Monitor, title: "Digital Signage", desc: "Gerencie TVs corporativas com editor visual drag & drop, playlists e agendamento." },
     { icon: ListOrdered, title: "Chamador de Senhas", desc: "Sistema completo de filas com prioridades, guichês e exibição em tempo real." },
