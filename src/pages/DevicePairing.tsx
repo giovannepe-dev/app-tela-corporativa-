@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 function generatePairingCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -10,106 +8,44 @@ function generatePairingCode(): string {
 }
 
 export default function DevicePairing() {
-  const navigate = useNavigate();
   const [code, setCode] = useState("");
-  const [deviceId, setDeviceId] = useState<string | null>(null);
   const [status, setStatus] = useState<"generating" | "waiting" | "paired" | "error">("generating");
+  const [timeLeft, setTimeLeft] = useState(900); // 15 minutes
 
-  const registerDevice = useCallback(async () => {
-    const pairingCode = generatePairingCode();
-    setCode(pairingCode);
-
-    const stored = localStorage.getItem("nexdisplay_device_id");
-
-    try {
-      const { data, error } = await supabase.functions.invoke("device-pairing", {
-        body: {
-          action: "register",
-          device_id: stored || undefined,
-          pairing_code: pairingCode,
-        },
-      });
-
-      if (error || !data?.id) {
-        // If stored device_id failed, try without it
-        if (stored) {
-          localStorage.removeItem("nexdisplay_device_id");
-          const { data: newData, error: newError } = await supabase.functions.invoke("device-pairing", {
-            body: {
-              action: "register",
-              pairing_code: pairingCode,
-            },
-          });
-          if (newError || !newData?.id) {
-            setStatus("error");
-            return;
-          }
-          localStorage.setItem("nexdisplay_device_id", newData.id);
-          setDeviceId(newData.id);
-          setStatus("waiting");
-          return;
-        }
-        setStatus("error");
-        return;
-      }
-
-      localStorage.setItem("nexdisplay_device_id", data.id);
-      setDeviceId(data.id);
-      setStatus("waiting");
-    } catch {
-      setStatus("error");
-    }
+  // Generate initial code
+  useEffect(() => {
+    const newCode = generatePairingCode();
+    setCode(newCode);
+    setStatus("waiting");
+    setTimeLeft(900);
+    console.log("🎯 Pairing code generated:", newCode);
   }, []);
 
-  useEffect(() => {
-    registerDevice();
-  }, [registerDevice]);
-
-  // Listen for pairing (company_id changes from placeholder)
-  useEffect(() => {
-    if (!deviceId) return;
-    const channel = supabase
-      .channel(`pairing-${deviceId}`)
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "devices",
-        filter: `id=eq.${deviceId}`,
-      }, (payload: any) => {
-        const updated = payload.new;
-        if (updated.company_id && updated.company_id !== "00000000-0000-0000-0000-000000000000") {
-          setStatus("paired");
-          setTimeout(() => {
-            if (updated.device_token) {
-              navigate(`/player/${updated.device_token}`);
-            }
-          }, 2000);
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [deviceId, navigate]);
-
-  // Refresh code every 14 minutes
+  // Countdown timer for code expiration
   useEffect(() => {
     if (status !== "waiting") return;
-    const interval = setInterval(() => {
-      registerDevice();
-    }, 14 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [status, registerDevice]);
 
-  // Heartbeat while waiting
-  useEffect(() => {
-    if (!deviceId || status === "paired") return;
-    const ping = () => {
-      supabase.functions.invoke("device-pairing", {
-        body: { action: "heartbeat", device_id: deviceId },
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Code expired, regenerate
+          const newCode = generatePairingCode();
+          setCode(newCode);
+          console.log("🎯 Pairing code refreshed:", newCode);
+          return 900;
+        }
+        return prev - 1;
       });
-    };
-    const interval = setInterval(ping, 30000);
+    }, 1000);
+
     return () => clearInterval(interval);
-  }, [deviceId, status]);
+  }, [status]);
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   return (
     <div className="h-screen w-screen bg-[#0a0e1a] flex items-center justify-center">
@@ -129,6 +65,7 @@ export default function DevicePairing() {
             <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8">
               <p className="text-white/40 text-xs uppercase tracking-[0.2em] mb-4">Código de Pareamento</p>
               <p className="text-6xl font-mono font-black text-blue-400 tracking-[0.4em] select-all">{code}</p>
+              <p className="text-white/40 text-sm mt-6">Expira em: {formatTime(timeLeft)}</p>
             </div>
             <div className="space-y-2">
               <p className="text-white/30 text-sm">Aguardando pareamento...</p>
@@ -158,7 +95,12 @@ export default function DevicePairing() {
           <div className="space-y-4">
             <p className="text-red-400 text-lg">Erro ao gerar código</p>
             <button
-              onClick={() => { setStatus("generating"); registerDevice(); }}
+              onClick={() => {
+                const newCode = generatePairingCode();
+                setCode(newCode);
+                setStatus("waiting");
+                setTimeLeft(900);
+              }}
               className="text-blue-400 text-sm underline"
             >
               Tentar novamente
