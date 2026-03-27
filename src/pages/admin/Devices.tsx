@@ -140,23 +140,29 @@ export default function Devices() {
     const code = pairCode.trim().toUpperCase();
 
     try {
+      console.log("🔗 Calling device-pairing with code:", code);
       const { data, error } = await supabase.functions.invoke("device-pairing", {
         body: { action: "pair", pairing_code: code },
       });
 
+      console.log("📡 Response from Edge Function:", { data, error });
+
       if (error) {
         const errorMsg = data?.error || error?.message || "Código inválido ou expirado.";
-        console.error("Pairing error:", errorMsg);
+        console.error("❌ Pairing error:", errorMsg);
         toast({ title: "Erro ao parear", description: errorMsg, variant: "destructive" });
+      } else if (!data || (data && !data.id)) {
+        console.error("❌ Invalid response from Edge Function:", data);
+        toast({ title: "Erro ao parear", description: data?.error || "Resposta inválida do servidor", variant: "destructive" });
       } else {
-        console.log("Device paired successfully:", data);
+        console.log("✅ Device paired successfully:", data);
         toast({ title: "Dispositivo pareado com sucesso!" });
         setPairDialogOpen(false);
         setPairCode("");
-        fetchDevices();
+        await fetchDevices();
       }
     } catch (err) {
-      console.error("Pairing exception:", err);
+      console.error("❌ Pairing exception:", err);
       toast({ title: "Erro ao parear", description: String(err), variant: "destructive" });
     }
     setPairing(false);
