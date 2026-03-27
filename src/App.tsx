@@ -23,50 +23,46 @@ import AccessRequests from "./pages/admin/AccessRequests";
 export default function App() {
   const { user, loading } = useAuth();
 
-  // TV mode: if no user (not authenticated), show TV pairing
-  // Admin mode: if user is authenticated, show admin panel
-  const isTVMode = !user && !loading;
+  // TV mode: only for TV pairing screens
+  // Admin mode: for authenticated users accessing admin panel
+  const isAuthenticated = !!user && !loading;
+
+  if (loading) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0e1a', color: 'white' }}>Carregando...</div>;
+  }
 
   return (
     <>
-      {/* Debug Banner - Shows TV Mode Status */}
+      {/* Debug Banner - Shows Auth Status */}
       <div style={{
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
-        background: isTVMode ? '#22c55e' : '#ef4444',
+        background: isAuthenticated ? '#ef4444' : '#22c55e',
         color: 'white',
         padding: '10px',
         fontSize: '12px',
         zIndex: 9999,
         textAlign: 'center'
       }}>
-        {isTVMode ? '✅ TV MODE ACTIVE' : '❌ ADMIN MODE (User: ' + user?.email + ')'}
+        {isAuthenticated ? '❌ ADMIN MODE (User: ' + user?.email + ')' : '✅ TV MODE READY'}
       </div>
 
       <BrowserRouter>
         <Routes>
-        {/* TV Mode Routes - Show when not authenticated */}
-        {isTVMode && (
-          <>
-            <Route path="/" element={<DevicePairing />} />
-            <Route path="/pair" element={<DevicePairing />} />
-            <Route path="/player/:deviceToken" element={<Player />} />
-            <Route path="*" element={<DevicePairing />} />
-          </>
-        )}
+        {/* TV Pairing Routes - for TV devices only */}
+        <Route path="/pair" element={<DevicePairing />} />
+        <Route path="/player/:deviceToken" element={<Player />} />
+        <Route path="/offline" element={<Offline />} />
 
-        {/* Admin Web Routes */}
-        {!isTVMode && (
+        {/* Auth Routes - Always available */}
+        <Route path="/auth" element={<Auth />} />
+
+        {/* Admin Routes - Only for authenticated users */}
+        {isAuthenticated && (
           <>
             <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/pair" element={<DevicePairing />} />
-            <Route path="/player/:deviceToken" element={<Player />} />
-            <Route path="/offline" element={<Offline />} />
-
-            {/* Admin Panel Routes */}
             <Route path="/admin" element={<AdminLayout><Dashboard /></AdminLayout>} />
             <Route path="/admin/devices" element={<AdminLayout><Devices /></AdminLayout>} />
             <Route path="/admin/screens" element={<AdminLayout><ScreensList /></AdminLayout>} />
@@ -80,8 +76,14 @@ export default function App() {
             <Route path="/admin/companies" element={<AdminLayout><CompaniesManagement /></AdminLayout>} />
             <Route path="/admin/guide" element={<AdminLayout><GettingStarted /></AdminLayout>} />
             <Route path="/admin/access-requests" element={<AdminLayout><AccessRequests /></AdminLayout>} />
+          </>
+        )}
 
-            <Route path="*" element={<Index />} />
+        {/* Fallback routes - redirect to login if not authenticated */}
+        {!isAuthenticated && (
+          <>
+            <Route path="/" element={<Auth />} />
+            <Route path="*" element={<Auth />} />
           </>
         )}
       </Routes>
