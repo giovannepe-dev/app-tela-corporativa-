@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
 import DevicePairing from "./pages/DevicePairing";
 import Player from "./pages/Player";
 import Offline from "./pages/Offline";
@@ -19,11 +20,13 @@ import CompaniesManagement from "./pages/admin/CompaniesManagement";
 import GettingStarted from "./pages/admin/GettingStarted";
 import AccessRequests from "./pages/admin/AccessRequests";
 
-const isTVMode = import.meta.env.VITE_TV_MODE === 'true';
-
-console.log('🎬 App loaded - isTVMode:', isTVMode, 'VITE_TV_MODE:', import.meta.env.VITE_TV_MODE);
-
 export default function App() {
+  const { user, loading } = useAuth();
+
+  // TV mode: if no user (not authenticated), show TV pairing
+  // Admin mode: if user is authenticated, show admin panel
+  const isTVMode = !user && !loading;
+
   return (
     <>
       {/* Debug Banner - Shows TV Mode Status */}
@@ -39,17 +42,12 @@ export default function App() {
         zIndex: 9999,
         textAlign: 'center'
       }}>
-        {isTVMode ? '✅ TV MODE ACTIVE' : '❌ ADMIN MODE - TV MODE DISABLED'}
+        {isTVMode ? '✅ TV MODE ACTIVE' : '❌ ADMIN MODE (User: ' + user?.email + ')'}
       </div>
 
       <BrowserRouter>
         <Routes>
-        {/* TV Mode Routes */}
-        {isTVMode && (
-          <>
-            {console.log('📺 TV Mode Routes Active')}
-          </>
-        )}
+        {/* TV Mode Routes - Show when not authenticated */}
         {isTVMode && (
           <>
             <Route path="/" element={<DevicePairing />} />
