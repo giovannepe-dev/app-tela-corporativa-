@@ -21,10 +21,19 @@ export default function DevicePairing() {
       setTimeLeft(900);
 
       try {
-        // Register code in Supabase
-        const { data, error } = await supabase.functions.invoke("device-pairing", {
-          body: { action: "register", pairing_code: newCode },
-        });
+        // Register code directly in Supabase via REST API
+        const { data, error } = await supabase
+          .from("devices")
+          .insert({
+            name: `TV-${newCode}`,
+            company_id: "00000000-0000-0000-0000-000000000000",
+            pairing_code: newCode,
+            pairing_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            status: "pairing",
+            last_seen: new Date().toISOString(),
+          })
+          .select("id, device_token")
+          .single();
 
         if (error) {
           console.error("❌ Register failed:", error);
@@ -55,9 +64,18 @@ export default function DevicePairing() {
             setCode(newCode);
 
             try {
-              const { data, error } = await supabase.functions.invoke("device-pairing", {
-                body: { action: "register", pairing_code: newCode },
-              });
+              const { data, error } = await supabase
+                .from("devices")
+                .insert({
+                  name: `TV-${newCode}`,
+                  company_id: "00000000-0000-0000-0000-000000000000",
+                  pairing_code: newCode,
+                  pairing_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+                  status: "pairing",
+                  last_seen: new Date().toISOString(),
+                })
+                .select("id, device_token")
+                .single();
 
               if (error) {
                 console.error("❌ Code refresh failed:", error);
