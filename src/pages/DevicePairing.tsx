@@ -21,6 +21,8 @@ export default function DevicePairing() {
       setTimeLeft(900);
 
       try {
+        console.log("📝 Attempting to insert device with code:", newCode);
+
         // Register code directly in Supabase via REST API
         const { data, error } = await supabase
           .from("devices")
@@ -35,15 +37,17 @@ export default function DevicePairing() {
           .select("id, device_token")
           .single();
 
+        console.log("📊 Insert response:", { data, error });
+
         if (error) {
-          console.error("❌ Register failed:", error);
+          console.error("❌ Register failed - Error details:", JSON.stringify(error, null, 2));
           setStatus("error");
         } else {
-          console.log("🎯 Pairing code registered:", newCode, "Device ID:", data?.id);
+          console.log("✅ Pairing code registered:", newCode, "Device ID:", data?.id);
           setStatus("waiting");
         }
       } catch (err) {
-        console.error("❌ Register error:", err);
+        console.error("❌ Register exception:", err);
         setStatus("error");
       }
     };
