@@ -21,26 +21,17 @@ export default function DevicePairing() {
       setTimeLeft(900);
 
       try {
-        console.log("📝 Attempting to insert device with code:", newCode);
+        console.log("📝 Calling tv-register function with code:", newCode);
 
-        // Register code directly in Supabase via REST API
-        const { data, error } = await supabase
-          .from("devices")
-          .insert({
-            name: `TV-${newCode}`,
-            company_id: "00000000-0000-0000-0000-000000000000",
-            pairing_code: newCode,
-            pairing_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-            status: "pairing",
-            last_seen: new Date().toISOString(),
-          })
-          .select("id, device_token")
-          .single();
+        // Call Edge Function to register device
+        const { data, error } = await supabase.functions.invoke("tv-register", {
+          body: { pairing_code: newCode },
+        });
 
-        console.log("📊 Insert response:", { data, error });
+        console.log("📊 Register response:", { data, error });
 
         if (error) {
-          console.error("❌ Register failed - Error details:", JSON.stringify(error, null, 2));
+          console.error("❌ Register failed:", error?.message || JSON.stringify(error));
           setStatus("error");
         } else {
           console.log("✅ Pairing code registered:", newCode, "Device ID:", data?.id);
@@ -68,21 +59,13 @@ export default function DevicePairing() {
             setCode(newCode);
 
             try {
-              const { data, error } = await supabase
-                .from("devices")
-                .insert({
-                  name: `TV-${newCode}`,
-                  company_id: "00000000-0000-0000-0000-000000000000",
-                  pairing_code: newCode,
-                  pairing_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-                  status: "pairing",
-                  last_seen: new Date().toISOString(),
-                })
-                .select("id, device_token")
-                .single();
+              console.log("🔄 Refreshing pairing code:", newCode);
+              const { data, error } = await supabase.functions.invoke("tv-register", {
+                body: { pairing_code: newCode },
+              });
 
               if (error) {
-                console.error("❌ Code refresh failed:", error);
+                console.error("❌ Code refresh failed:", error?.message);
               } else {
                 console.log("🎯 Pairing code refreshed:", newCode, "Device ID:", data?.id);
               }
