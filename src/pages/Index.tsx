@@ -10,13 +10,9 @@ export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Redirect to pairing if TV Mode is detected
+  // Redirect to pairing if TV Mode is detected (only from build-time variable)
   useEffect(() => {
-    const isTVMode =
-      import.meta.env.VITE_TV_MODE === 'true' ||
-      import.meta.env.MODE === 'tv' ||
-      localStorage.getItem('tv_mode') === 'true' ||
-      new URLSearchParams(window.location.search).get('tv') === 'true';
+    const isTVMode = import.meta.env.VITE_TV_MODE === 'true';
 
     if (isTVMode) {
       console.log('📺 TV Mode detected - Redirecting to pairing screen');
