@@ -144,16 +144,20 @@ export default function Devices() {
         body: { action: "pair", pairing_code: code },
       });
 
-      if (error || data?.error) {
-        toast({ title: "Erro ao parear", description: data?.error || error?.message || "Código inválido ou expirado.", variant: "destructive" });
+      if (error) {
+        const errorMsg = data?.error || error?.message || "Código inválido ou expirado.";
+        console.error("Pairing error:", errorMsg);
+        toast({ title: "Erro ao parear", description: errorMsg, variant: "destructive" });
       } else {
+        console.log("Device paired successfully:", data);
         toast({ title: "Dispositivo pareado com sucesso!" });
         setPairDialogOpen(false);
         setPairCode("");
         fetchDevices();
       }
-    } catch {
-      toast({ title: "Erro ao parear", variant: "destructive" });
+    } catch (err) {
+      console.error("Pairing exception:", err);
+      toast({ title: "Erro ao parear", description: String(err), variant: "destructive" });
     }
     setPairing(false);
   };

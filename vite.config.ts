@@ -2,9 +2,13 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const isTVMode = mode === 'tv';
+
+  return {
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    'import.meta.env.VITE_TV_MODE': JSON.stringify(isTVMode),
   },
   server: {
     host: "::",
@@ -30,4 +34,5 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+  };
+});

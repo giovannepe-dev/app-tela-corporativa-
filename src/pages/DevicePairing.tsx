@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 function generatePairingCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -12,13 +13,33 @@ export default function DevicePairing() {
   const [status, setStatus] = useState<"generating" | "waiting" | "paired" | "error">("generating");
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes
 
-  // Generate initial code
+  // Generate initial code and register in database
   useEffect(() => {
-    const newCode = generatePairingCode();
-    setCode(newCode);
-    setStatus("waiting");
-    setTimeLeft(900);
-    console.log("🎯 Pairing code generated:", newCode);
+    const registerCode = async () => {
+      const newCode = generatePairingCode();
+      setCode(newCode);
+      setTimeLeft(900);
+
+      try {
+        // Register code in Supabase
+        const { data, error } = await supabase.functions.invoke("device-pairing", {
+          body: { action: "register", pairing_code: newCode },
+        });
+
+        if (error) {
+          console.error("❌ Register failed:", error);
+          setStatus("error");
+        } else {
+          console.log("🎯 Pairing code registered:", newCode, "Device ID:", data?.id);
+          setStatus("waiting");
+        }
+      } catch (err) {
+        console.error("❌ Register error:", err);
+        setStatus("error");
+      }
+    };
+
+    registerCode();
   }, []);
 
   // Countdown timer for code expiration
@@ -29,9 +50,26 @@ export default function DevicePairing() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           // Code expired, regenerate
-          const newCode = generatePairingCode();
-          setCode(newCode);
-          console.log("🎯 Pairing code refreshed:", newCode);
+          const refreshCode = async () => {
+            const newCode = generatePairingCode();
+            setCode(newCode);
+
+            try {
+              const { data, error } = await supabase.functions.invoke("device-pairing", {
+                body: { action: "register", pairing_code: newCode },
+              });
+
+              if (error) {
+                console.error("❌ Code refresh failed:", error);
+              } else {
+                console.log("🎯 Pairing code refreshed:", newCode, "Device ID:", data?.id);
+              }
+            } catch (err) {
+              console.error("❌ Code refresh error:", err);
+            }
+          };
+
+          refreshCode();
           return 900;
         }
         return prev - 1;
