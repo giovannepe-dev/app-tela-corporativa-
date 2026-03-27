@@ -25,8 +25,25 @@ console.log('🎬 App loaded - isTVMode:', isTVMode, 'VITE_TV_MODE:', import.met
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <>
+      {/* Debug Banner - Shows TV Mode Status */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        background: isTVMode ? '#22c55e' : '#ef4444',
+        color: 'white',
+        padding: '10px',
+        fontSize: '12px',
+        zIndex: 9999,
+        textAlign: 'center'
+      }}>
+        {isTVMode ? '✅ TV MODE ACTIVE' : '❌ ADMIN MODE - TV MODE DISABLED'}
+      </div>
+
+      <BrowserRouter>
+        <Routes>
         {/* TV Mode Routes */}
         {isTVMode && (
           <>
@@ -71,5 +88,6 @@ export default function App() {
         )}
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
