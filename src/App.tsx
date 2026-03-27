@@ -21,11 +21,18 @@ import AccessRequests from "./pages/admin/AccessRequests";
 
 const isTVMode = import.meta.env.VITE_TV_MODE === 'true';
 
+console.log('🎬 App loaded - isTVMode:', isTVMode, 'VITE_TV_MODE:', import.meta.env.VITE_TV_MODE);
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* TV Mode Routes */}
+        {isTVMode && (
+          <>
+            {console.log('📺 TV Mode Routes Active')}
+          </>
+        )}
         {isTVMode && (
           <>
             <Route path="/" element={<DevicePairing />} />
