@@ -21,30 +21,48 @@ export default function DevicePairing() {
       setTimeLeft(900);
 
       try {
-        console.log("📝 Calling tv-register function with code:", newCode);
+        console.log("📝 Registering pairing code:", newCode);
 
-        // Call Edge Function to register device using fetch (no JWT required)
-        const response = await fetch(
-          "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pairing_code: newCode }),
+        // Try using Supabase functions invoke (better for mobile)
+        try {
+          const { data, error } = await supabase.functions.invoke("tv-register", {
+            body: { pairing_code: newCode },
+            headers: { Authorization: "" } // No auth header
+          });
+
+          console.log("📊 Register response:", { data, error });
+
+          if (error) {
+            throw error;
           }
-        );
 
-        const data = await response.json();
-        console.log("📊 Register response:", { status: response.status, data });
-
-        if (!response.ok) {
-          console.error("❌ Register failed:", data?.error || response.statusText);
-          setStatus("error");
-        } else {
           console.log("✅ Pairing code registered:", newCode, "Device ID:", data?.id);
+          setStatus("waiting");
+        } catch (err) {
+          console.warn("⚠️ Fallback to fetch:", err);
+
+          // Fallback to direct fetch
+          const response = await fetch(
+            "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ pairing_code: newCode }),
+            }
+          );
+
+          const data = await response.json();
+          console.log("📊 Fetch response:", { status: response.status, data });
+
+          if (!response.ok) {
+            throw new Error(data?.error || response.statusText);
+          }
+
+          console.log("✅ Pairing code registered (fetch):", newCode, "Device ID:", data?.id);
           setStatus("waiting");
         }
       } catch (err) {
-        console.error("❌ Register exception:", err);
+        console.error("❌ Register failed:", err);
         setStatus("error");
       }
     };
@@ -66,20 +84,31 @@ export default function DevicePairing() {
 
             try {
               console.log("🔄 Refreshing pairing code:", newCode);
-              const response = await fetch(
-                "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ pairing_code: newCode }),
-                }
-              );
 
-              const data = await response.json();
-              if (!response.ok) {
-                console.error("❌ Code refresh failed:", data?.error || response.statusText);
-              } else {
+              try {
+                const { data, error } = await supabase.functions.invoke("tv-register", {
+                  body: { pairing_code: newCode },
+                  headers: { Authorization: "" }
+                });
+
+                if (error) throw error;
                 console.log("🎯 Pairing code refreshed:", newCode, "Device ID:", data?.id);
+              } catch (err) {
+                console.warn("⚠️ Fallback refresh:", err);
+                const response = await fetch(
+                  "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pairing_code: newCode }),
+                  }
+                );
+
+                const data = await response.json();
+                if (!response.ok) {
+                  throw new Error(data?.error || response.statusText);
+                }
+                console.log("🎯 Pairing code refreshed (fetch):", newCode, "Device ID:", data?.id);
               }
             } catch (err) {
               console.error("❌ Code refresh error:", err);
