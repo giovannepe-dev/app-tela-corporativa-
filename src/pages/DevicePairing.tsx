@@ -23,15 +23,21 @@ export default function DevicePairing() {
       try {
         console.log("📝 Calling tv-register function with code:", newCode);
 
-        // Call Edge Function to register device
-        const { data, error } = await supabase.functions.invoke("tv-register", {
-          body: { pairing_code: newCode },
-        });
+        // Call Edge Function to register device using fetch (no JWT required)
+        const response = await fetch(
+          "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pairing_code: newCode }),
+          }
+        );
 
-        console.log("📊 Register response:", { data, error });
+        const data = await response.json();
+        console.log("📊 Register response:", { status: response.status, data });
 
-        if (error) {
-          console.error("❌ Register failed:", error?.message || JSON.stringify(error));
+        if (!response.ok) {
+          console.error("❌ Register failed:", data?.error || response.statusText);
           setStatus("error");
         } else {
           console.log("✅ Pairing code registered:", newCode, "Device ID:", data?.id);
@@ -60,12 +66,18 @@ export default function DevicePairing() {
 
             try {
               console.log("🔄 Refreshing pairing code:", newCode);
-              const { data, error } = await supabase.functions.invoke("tv-register", {
-                body: { pairing_code: newCode },
-              });
+              const response = await fetch(
+                "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ pairing_code: newCode }),
+                }
+              );
 
-              if (error) {
-                console.error("❌ Code refresh failed:", error?.message);
+              const data = await response.json();
+              if (!response.ok) {
+                console.error("❌ Code refresh failed:", data?.error || response.statusText);
               } else {
                 console.log("🎯 Pairing code refreshed:", newCode, "Device ID:", data?.id);
               }
