@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useAuth } from "./contexts/AuthContext";
 import DevicePairing from "./pages/DevicePairing";
 import Player from "./pages/Player";
@@ -22,12 +23,20 @@ import AccessRequests from "./pages/admin/AccessRequests";
 
 export default function App() {
   const { user, loading } = useAuth();
+  const [pathname, setPathname] = useState("");
 
-  // TV mode: only for TV pairing screens
-  // Admin mode: for authenticated users accessing admin panel
-  const isAuthenticated = !!user && !loading;
+  // Detect current path for TV mode
+  useEffect(() => {
+    const path = window.location.pathname;
+    setPathname(path);
+  }, []);
 
-  if (loading) {
+  // TV mode: explicitly on /pair route OR if no authentication
+  // Admin mode: authenticated AND not on /pair route
+  const isTVRoute = pathname === "/pair" || pathname === "/player";
+  const isAuthenticated = !!user && !loading && !isTVRoute;
+
+  if (loading && !isTVRoute) {
     return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0e1a', color: 'white' }}>Carregando...</div>;
   }
 
