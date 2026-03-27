@@ -199,11 +199,12 @@ self.addEventListener('periodicsync', (event) => {
         try {
           const response = await fetch('/api/units');
           if (response.ok) {
+            const data = await response.json();
             const clients = await self.clients.matchAll();
             clients.forEach(client => {
               client.postMessage({
                 type: 'UNITS_UPDATED',
-                data: await response.json()
+                data: data
               });
             });
           }
