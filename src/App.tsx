@@ -60,6 +60,9 @@ export default function App() {
 
       <BrowserRouter>
         <Routes>
+        {/* Default route - go to pair for TV devices */}
+        <Route path="/" element={<DevicePairing />} />
+
         {/* TV Pairing Routes - for TV devices only */}
         <Route path="/pair" element={<DevicePairing />} />
         <Route path="/player/:deviceToken" element={<Player />} />
@@ -71,7 +74,7 @@ export default function App() {
         {/* Admin Routes - Only for authenticated users */}
         {isAuthenticated && (
           <>
-            <Route path="/" element={<Index />} />
+            <Route path="/admin-home" element={<Index />} />
             <Route path="/admin" element={<AdminLayout><Dashboard /></AdminLayout>} />
             <Route path="/admin/devices" element={<AdminLayout><Devices /></AdminLayout>} />
             <Route path="/admin/screens" element={<AdminLayout><ScreensList /></AdminLayout>} />
