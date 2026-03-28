@@ -146,29 +146,25 @@ function WidgetRenderer({ widget }: { widget: Widget }) {
 }
 
 function ScreenCanvas({ screen, transition, visible }: { screen: ScreenData; transition: string; visible: boolean }) {
-  const scaleX = window.innerWidth / screen.width;
-  const scaleY = window.innerHeight / screen.height;
-  const scale = Math.max(scaleX, scaleY);
-
   const transitionStyle: React.CSSProperties = {
-    transition: "opacity 0.8s ease, transform 0.8s ease",
+    transition: "opacity 0.8s ease",
     opacity: visible ? 1 : 0,
-    ...(transition === "slide-left" && !visible ? { transform: `scale(${scale}) translateX(-100%)` } : {}),
-    ...(transition === "slide-right" && !visible ? { transform: `scale(${scale}) translateX(100%)` } : {}),
-    ...(transition === "slide-up" && !visible ? { transform: `scale(${scale}) translateY(-100%)` } : {}),
     ...(transition === "none" ? { transition: "none" } : {}),
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center" style={transitionStyle}>
+    <div className="absolute inset-0 w-full h-full overflow-hidden flex items-center justify-center" style={transitionStyle}>
       <div
         style={{
           width: screen.width,
           height: screen.height,
           backgroundColor: screen.backgroundColor,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
           position: "relative",
+          maxWidth: "100%",
+          maxHeight: "100%",
+          aspectRatio: `${screen.width} / ${screen.height}`,
+          transform: "scale(1)",
+          transformOrigin: "center center",
         }}
       >
         {screen.widgets.map(w => (
