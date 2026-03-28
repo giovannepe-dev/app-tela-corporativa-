@@ -101,10 +101,14 @@ Deno.serve(async (req) => {
         .single();
       if (deviceError || !device) return json({ error: "Código inválido ou expirado" }, 404);
 
+      // Generate a unique device_token if not already present
+      const deviceToken = device.device_token || crypto.randomUUID();
+
       const { data: updated, error: updateError } = await supabase
         .from("devices")
         .update({
           company_id: profile.company_id,
+          device_token: deviceToken,
           status: "online",
           pairing_code: null,
           pairing_expires_at: null,
