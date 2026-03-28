@@ -35,45 +35,42 @@ export default function DevicePairing() {
     checkIfPaired();
   }, []);
 
-  // Subscribe to device pairing updates using Realtime
+  // Poll for device pairing - simple and reliable
   useEffect(() => {
-    console.log("🔵 Realtime effect triggered, deviceId:", deviceId);
-    if (!deviceId || status === "paired") return;
+    if (!deviceId) return;
 
-    console.log("🟢 Realtime subscription started for device:", deviceId);
+    let isActive = true;
+    const pollInterval = setInterval(async () => {
+      if (!isActive) return;
 
-    const channel = supabase
-      .channel(`device-${deviceId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "devices",
-          filter: `id=eq.${deviceId}`,
-        },
-        (payload: any) => {
-          const updated = payload.new;
-          console.log("📊 Device updated:", updated);
+      try {
+        const { data } = await supabase
+          .from("devices")
+          .select("device_token, status")
+          .eq("id", deviceId)
+          .single();
 
-          if (updated?.device_token && updated.status !== "pairing") {
-            console.log("🎉 Device paired! Token:", updated.device_token);
-            localStorage.setItem("device_token", updated.device_token);
-            setStatus("paired");
-            setTimeout(() => {
-              window.location.href = `/player/${updated.device_token}`;
-            }, 1500);
-          }
+        if (data?.device_token && data.status === "online") {
+          console.log("✅ PAIRED! Redirecting...");
+          localStorage.setItem("device_token", data.device_token);
+          setStatus("paired");
+
+          setTimeout(() => {
+            window.location.href = `/player/${data.device_token}`;
+          }, 2000);
+
+          isActive = false;
         }
-      )
-      .subscribe((status: any) => {
-        console.log("📡 Realtime subscription status:", status);
-      });
+      } catch (err) {
+        // Silent fail
+      }
+    }, 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      isActive = false;
+      clearInterval(pollInterval);
     };
-  }, [deviceId, status]);
+  }, [deviceId]);
 
   // Generate initial code and register in database
   useEffect(() => {
