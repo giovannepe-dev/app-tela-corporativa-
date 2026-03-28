@@ -23,7 +23,7 @@ import AccessRequests from "./pages/admin/AccessRequests";
 
 export default function App() {
   const { user, loading } = useAuth();
-  const [pathname, setPathname] = useState("");
+  const [pathname, setPathname] = useState(window.location.pathname);
 
   // Detect current path for TV mode
   useEffect(() => {
