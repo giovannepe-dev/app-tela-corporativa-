@@ -38,8 +38,13 @@ export default function DevicePairing() {
   // Poll for device pairing updates
   useEffect(() => {
     console.log("🔵 Poll effect triggered, status:", status, "deviceId:", deviceId);
-    if (status !== "waiting" || !deviceId) {
-      console.log("🟡 Poll skipped: status not waiting or no deviceId");
+    if (!deviceId) {
+      console.log("🟡 Poll skipped: no deviceId");
+      return;
+    }
+
+    if (status === "paired") {
+      console.log("🟡 Poll skipped: already paired");
       return;
     }
 

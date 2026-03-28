@@ -148,7 +148,7 @@ function WidgetRenderer({ widget }: { widget: Widget }) {
 function ScreenCanvas({ screen, transition, visible }: { screen: ScreenData; transition: string; visible: boolean }) {
   const scaleX = window.innerWidth / screen.width;
   const scaleY = window.innerHeight / screen.height;
-  const scale = Math.min(scaleX, scaleY);
+  const scale = Math.max(scaleX, scaleY);
 
   const transitionStyle: React.CSSProperties = {
     transition: "opacity 0.8s ease, transform 0.8s ease",
