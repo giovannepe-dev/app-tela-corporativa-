@@ -59,19 +59,25 @@ export default function ScreenEditor() {
 
   // Load screen
   useEffect(() => {
-    if (!screenId || screenId === "new") { setLoaded(true); return; }
+    console.log("🔵 ScreenEditor useEffect triggered, screenId:", screenId);
+    if (!screenId || screenId === "new") {
+      console.log("🟡 screenId is new or empty, skipping load");
+      setLoaded(true);
+      return;
+    }
+    console.log("🟢 Loading screen with ID:", screenId);
     supabase.from("screens").select("*").eq("id", screenId).single().then(({ data, error }) => {
       if (error) {
-        console.error("Load screen error:", error);
+        console.error("❌ Load screen error:", error);
         toast({ title: "Erro ao carregar tela", description: error.message, variant: "destructive" });
       } else if (data) {
-        console.log("Screen loaded:", data);
+        console.log("✅ Screen loaded:", data);
         setScreenName(data.name);
         setWidth(data.width);
         setHeight(data.height);
         setBackgroundColor(data.background_color || "#0a0e1a");
         const layout = data.layout_json as any;
-        console.log("Layout loaded:", layout);
+        console.log("📋 Layout loaded:", layout);
         setWidgets(layout?.widgets ?? []);
       }
       setLoaded(true);
