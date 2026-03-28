@@ -331,14 +331,24 @@ export default function Player() {
   const loadDevice = useCallback(async () => {
     if (!deviceToken) return;
 
-    // Try to get device by token first (preferred)
-    const { data, error: err } = await supabase.functions.invoke("device-pairing", {
-      body: { action: "get_device", device_token: deviceToken },
-    });
+    try {
+      // Try to get device by token via fetch
+      const response = await fetch(
+        "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_device", device_token: deviceToken }),
+        }
+      );
 
-    if (data && !err && !data.error) {
-      setDevice(data);
-      return data;
+      const data = await response.json();
+      if (response.ok && data && !data.error) {
+        setDevice(data);
+        return data;
+      }
+    } catch (err) {
+      console.warn("Device fetch error:", err);
     }
 
     // If not found by token, try by ID (for APK pairing)
