@@ -383,10 +383,22 @@ export default function Player() {
   }, [deviceToken]);
 
   const loadPlaylist = useCallback(async (playlistId: string) => {
-    const { data: items } = await supabase.functions.invoke("device-pairing", {
-      body: { action: "get_playlist_items", playlist_id: playlistId },
-    });
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    try {
+      const response = await fetch(
+        "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_playlist_items", playlist_id: playlistId }),
+        }
+      );
+      const items = await response.json();
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        setPlaylistItems([]);
+        return;
+      }
+    } catch (err) {
+      console.error("Error loading playlist:", err);
       setPlaylistItems([]);
       return;
     }
@@ -432,9 +444,11 @@ export default function Player() {
   useEffect(() => {
     if (!device?.id) return;
     const ping = () => {
-      supabase.functions.invoke("device-pairing", {
-        body: { action: "device_heartbeat", device_id: device.id },
-      });
+      fetch("https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "device_heartbeat", device_id: device.id }),
+      }).catch(() => {});
     };
     ping();
     const interval = setInterval(ping, 30000);
