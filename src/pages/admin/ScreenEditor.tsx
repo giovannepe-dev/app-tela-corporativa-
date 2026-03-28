@@ -60,13 +60,18 @@ export default function ScreenEditor() {
   // Load screen
   useEffect(() => {
     if (!screenId || screenId === "new") { setLoaded(true); return; }
-    supabase.from("screens").select("*").eq("id", screenId).single().then(({ data }) => {
-      if (data) {
+    supabase.from("screens").select("*").eq("id", screenId).single().then(({ data, error }) => {
+      if (error) {
+        console.error("Load screen error:", error);
+        toast({ title: "Erro ao carregar tela", description: error.message, variant: "destructive" });
+      } else if (data) {
+        console.log("Screen loaded:", data);
         setScreenName(data.name);
         setWidth(data.width);
         setHeight(data.height);
         setBackgroundColor(data.background_color || "#0a0e1a");
         const layout = data.layout_json as any;
+        console.log("Layout loaded:", layout);
         setWidgets(layout?.widgets ?? []);
       }
       setLoaded(true);
@@ -120,45 +125,66 @@ export default function ScreenEditor() {
   }, [selectedId, widgets]);
 
   const saveScreen = async () => {
-    if (!profile?.company_id) return;
+    if (!profile?.company_id) {
+      toast({ title: "Erro", description: "Sem acesso à empresa", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     const layout: ScreenLayout = { widgets };
 
-    if (screenId && screenId !== "new") {
-      // Save version
-      await supabase.from("screen_versions").insert({
-        screen_id: screenId,
-        layout_json: layout as any,
-        created_by: user?.id,
-      });
-      const { error } = await supabase.from("screens").update({
-        name: screenName,
-        width,
-        height,
-        background_color: backgroundColor,
-        layout_json: layout as any,
-        orientation: width > height ? "landscape" : "portrait",
-      }).eq("id", screenId);
-      if (error) toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-      else toast({ title: "Tela salva!" });
-    } else {
-      const { data, error } = await supabase.from("screens").insert({
-        company_id: profile.company_id,
-        name: screenName,
-        width,
-        height,
-        background_color: backgroundColor,
-        layout_json: layout as any,
-        orientation: width > height ? "landscape" : "portrait",
-        created_by: user?.id,
-      }).select().single();
-      if (error) toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
-      else {
-        toast({ title: "Tela criada!" });
-        navigate(`/admin/screens/edit/${data.id}`, { replace: true });
+    try {
+      if (screenId && screenId !== "new") {
+        // Save version
+        const { error: versionError } = await supabase.from("screen_versions").insert({
+          screen_id: screenId,
+          layout_json: layout as any,
+          created_by: user?.id,
+        });
+        if (versionError) console.warn("Version save warning:", versionError);
+
+        const { error } = await supabase.from("screens").update({
+          name: screenName,
+          width,
+          height,
+          background_color: backgroundColor,
+          layout_json: layout as any,
+          orientation: width > height ? "landscape" : "portrait",
+        }).eq("id", screenId);
+
+        if (error) {
+          console.error("Save error:", error);
+          toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        } else {
+          console.log("Screen saved:", screenId);
+          toast({ title: "Tela salva!" });
+        }
+      } else {
+        const { data, error } = await supabase.from("screens").insert({
+          company_id: profile.company_id,
+          name: screenName,
+          width,
+          height,
+          background_color: backgroundColor,
+          layout_json: layout as any,
+          orientation: width > height ? "landscape" : "portrait",
+          created_by: user?.id,
+        }).select().single();
+
+        if (error) {
+          console.error("Create error:", error);
+          toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
+        } else {
+          console.log("Screen created:", data.id);
+          toast({ title: "Tela criada!" });
+          navigate(`/admin/screens/edit/${data.id}`, { replace: true });
+        }
       }
+    } catch (err: any) {
+      console.error("Unexpected error:", err);
+      toast({ title: "Erro inesperado", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const selectedWidget = widgets.find(w => w.id === selectedId) ?? null;
