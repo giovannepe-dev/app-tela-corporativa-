@@ -81,14 +81,16 @@ export default function DevicePairing() {
 
         // Try using Supabase functions invoke (better for mobile)
         try {
+          console.log("🔄 Trying supabase.functions.invoke...");
           const { data, error } = await supabase.functions.invoke("tv-register", {
             body: { pairing_code: newCode },
-            headers: { Authorization: "" } // No auth header
+            headers: { Authorization: "" }
           });
 
           console.log("📊 Register response:", { data, error });
 
           if (error) {
+            console.error("🚨 Edge function error:", error);
             throw error;
           }
 
@@ -98,10 +100,11 @@ export default function DevicePairing() {
             localStorage.setItem("device_id", data.id);
           }
           setStatus("waiting");
-        } catch (err) {
-          console.warn("⚠️ Fallback to fetch:", err);
+        } catch (err: any) {
+          console.warn("⚠️ Fallback to fetch, error was:", err?.message);
 
           // Fallback to direct fetch
+          console.log("🔄 Trying direct fetch...");
           const response = await fetch(
             "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
             {
@@ -125,8 +128,9 @@ export default function DevicePairing() {
           }
           setStatus("waiting");
         }
-      } catch (err) {
-        console.error("❌ Register failed:", err);
+      } catch (err: any) {
+        console.error("❌ Register failed:", err?.message);
+        console.error("Full error:", err);
         setStatus("error");
       }
     };
