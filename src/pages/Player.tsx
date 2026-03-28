@@ -270,6 +270,9 @@ export default function Player() {
   const [device, setDevice] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Support both device_token (from /player/:deviceToken) and device_id (from /player/:deviceId)
+  // deviceToken param can be either a token or an ID - Player will try both
+
   // Audio ducking: lower video/media volume when queue calls
   useEffect(() => {
     const savedVolumes = new Map<HTMLMediaElement, number>();
@@ -327,15 +330,35 @@ export default function Player() {
 
   const loadDevice = useCallback(async () => {
     if (!deviceToken) return;
+
+    // Try to get device by token first (preferred)
     const { data, error: err } = await supabase.functions.invoke("device-pairing", {
       body: { action: "get_device", device_token: deviceToken },
     });
-    if (err || !data || data.error) {
-      setError("Dispositivo não encontrado");
-      return;
+
+    if (data && !err && !data.error) {
+      setDevice(data);
+      return data;
     }
-    setDevice(data);
-    return data;
+
+    // If not found by token, try by ID (for APK pairing)
+    try {
+      const { data: byId } = await supabase
+        .from("devices")
+        .select("*")
+        .eq("id", deviceToken)
+        .single();
+
+      if (byId) {
+        setDevice(byId);
+        return byId;
+      }
+    } catch {
+      // Ignore
+    }
+
+    setError("Dispositivo não encontrado");
+    return null;
   }, [deviceToken]);
 
   const loadPlaylist = useCallback(async (playlistId: string) => {

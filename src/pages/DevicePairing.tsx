@@ -35,42 +35,21 @@ export default function DevicePairing() {
     checkIfPaired();
   }, []);
 
-  // Poll for device pairing - simple and reliable
+  // Auto-redirect to player using device ID (works with RLS)
   useEffect(() => {
-    if (!deviceId) return;
+    if (!deviceId || status === "paired") return;
 
-    let isActive = true;
-    const pollInterval = setInterval(async () => {
-      if (!isActive) return;
+    // After device is registered, periodically try to access player
+    // If device is paired, it will have a device_token and player will load
+    const redirectTimer = setInterval(() => {
+      console.log("📱 Attempting redirect to player...");
+      // Try to go to player - if device is paired, it will load
+      // If not paired yet, player will show "not found" briefly
+      window.location.href = `/player/${deviceId}`;
+    }, 3000);
 
-      try {
-        const { data } = await supabase
-          .from("devices")
-          .select("device_token, status")
-          .eq("id", deviceId)
-          .single();
-
-        if (data?.device_token && data.status === "online") {
-          console.log("✅ PAIRED! Redirecting...");
-          localStorage.setItem("device_token", data.device_token);
-          setStatus("paired");
-
-          setTimeout(() => {
-            window.location.href = `/player/${data.device_token}`;
-          }, 2000);
-
-          isActive = false;
-        }
-      } catch (err) {
-        // Silent fail
-      }
-    }, 1000);
-
-    return () => {
-      isActive = false;
-      clearInterval(pollInterval);
-    };
-  }, [deviceId]);
+    return () => clearInterval(redirectTimer);
+  }, [deviceId, status]);
 
   // Generate initial code and register in database
   useEffect(() => {
