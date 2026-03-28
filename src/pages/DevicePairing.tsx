@@ -35,54 +35,45 @@ export default function DevicePairing() {
     checkIfPaired();
   }, []);
 
-  // Poll for device pairing updates
+  // Subscribe to device pairing updates using Realtime
   useEffect(() => {
-    console.log("🔵 Poll effect triggered, status:", status, "deviceId:", deviceId);
-    if (!deviceId) {
-      console.log("🟡 Poll skipped: no deviceId");
-      return;
-    }
+    console.log("🔵 Realtime effect triggered, deviceId:", deviceId);
+    if (!deviceId || status === "paired") return;
 
-    if (status === "paired") {
-      console.log("🟡 Poll skipped: already paired");
-      return;
-    }
+    console.log("🟢 Realtime subscription started for device:", deviceId);
 
-    console.log("🟢 Poll started for device:", deviceId);
-    const pollInterval = setInterval(async () => {
-      try {
-        console.log("🔄 Polling device:", deviceId);
-        const { data, error } = await supabase
-          .from("devices")
-          .select("device_token, status, pairing_code")
-          .eq("id", deviceId)
-          .single();
+    const channel = supabase
+      .channel(`device-${deviceId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "devices",
+          filter: `id=eq.${deviceId}`,
+        },
+        (payload: any) => {
+          const updated = payload.new;
+          console.log("📊 Device updated:", updated);
 
-        if (error) {
-          console.warn("⚠️ Poll error:", error);
-          return;
+          if (updated?.device_token && updated.status !== "pairing") {
+            console.log("🎉 Device paired! Token:", updated.device_token);
+            localStorage.setItem("device_token", updated.device_token);
+            setStatus("paired");
+            setTimeout(() => {
+              window.location.href = `/player/${updated.device_token}`;
+            }, 1500);
+          }
         }
+      )
+      .subscribe((status: any) => {
+        console.log("📡 Realtime subscription status:", status);
+      });
 
-        console.log("📊 Poll result:", data);
-
-        // Check if device has been paired (has device_token)
-        if (data?.device_token && data.status !== "pairing") {
-          console.log("🎉 Device paired! Token:", data.device_token);
-          localStorage.setItem("device_token", data.device_token);
-          setStatus("paired");
-          setTimeout(() => {
-            window.location.href = `/player/${data.device_token}`;
-          }, 1500);
-        } else {
-          console.log("⏳ Still waiting... token:", data?.device_token, "status:", data?.status);
-        }
-      } catch (err) {
-        console.warn("⚠️ Polling failed:", err);
-      }
-    }, 2000);
-
-    return () => clearInterval(pollInterval);
-  }, [status, deviceId]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [deviceId, status]);
 
   // Generate initial code and register in database
   useEffect(() => {
