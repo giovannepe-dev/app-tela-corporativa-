@@ -29,6 +29,16 @@ export default function App() {
   useEffect(() => {
     const path = window.location.pathname;
     setPathname(path);
+
+    // Force TV mode if no path or loading auth fails
+    const isMobileApp = window.matchMedia("(display-mode: standalone)").matches ||
+                        (window.navigator as any).standalone === true ||
+                        (window as any).capacitor !== undefined;
+
+    if (isMobileApp && path !== "/pair" && path !== "/player" && path !== "/offline") {
+      console.log("📱 Mobile app detected, forcing /pair route");
+      window.location.href = "/pair";
+    }
   }, []);
 
   // TV mode: explicitly on /pair route OR if no authentication
