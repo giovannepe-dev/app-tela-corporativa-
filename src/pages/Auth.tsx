@@ -20,6 +20,7 @@ export default function Auth() {
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [debugMsg, setDebugMsg] = useState("");
 
   if (loading) {
     return (
@@ -33,8 +34,24 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+    setDebugMsg("Entrando...");
+    try {
+      console.log("🔐 Tentando login com:", email);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        const msg = `Erro: ${error.message}`;
+        console.error("❌ Login error:", error);
+        setDebugMsg(msg);
+        toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+      } else {
+        console.log("✅ Login bem-sucedido!", data);
+        setDebugMsg("Login bem-sucedido! Redirecionando...");
+      }
+    } catch (err) {
+      const msg = String(err);
+      console.error("❌ Login exception:", err);
+      setDebugMsg(msg);
+    }
     setSubmitting(false);
   };
 
@@ -96,6 +113,13 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen gradient-nex-dark flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Debug Banner */}
+      {debugMsg && (
+        <div className="fixed top-2 left-2 right-2 bg-blue-900/80 text-white text-xs p-2 rounded z-50 text-center">
+          {debugMsg}
+        </div>
+      )}
+
       {/* Glow effects */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[128px]" />
       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-[100px]" />

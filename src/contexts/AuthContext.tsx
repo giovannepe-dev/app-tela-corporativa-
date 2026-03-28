@@ -40,18 +40,24 @@ async function fetchProfileAndRoles(userId: string, accessToken: string) {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
   };
-  const [profileRes, rolesRes] = await Promise.all([
-    fetch(`${supabaseUrl}/rest/v1/profiles?select=id,full_name,email,company_id&user_id=eq.${userId}`, { headers }),
-    fetch(`${supabaseUrl}/rest/v1/user_roles?select=role&user_id=eq.${userId}`, { headers }),
-  ]);
-  const profileArr = await profileRes.json();
-  const rolesArr = await rolesRes.json();
-  return {
-    profile: Array.isArray(profileArr) && profileArr.length > 0
-      ? (profileArr[0] as { id: string; full_name: string | null; email: string | null; company_id: string | null })
-      : null,
-    roles: Array.isArray(rolesArr) ? rolesArr.map((r: { role: string }) => r.role) : [],
-  };
+  try {
+    const [profileRes, rolesRes] = await Promise.all([
+      fetch(`${supabaseUrl}/rest/v1/profiles?select=id,full_name,email,company_id&user_id=eq.${userId}`, { headers }),
+      fetch(`${supabaseUrl}/rest/v1/user_roles?select=role&user_id=eq.${userId}`, { headers }),
+    ]);
+    const profileArr = await profileRes.json();
+    const rolesArr = await rolesRes.json();
+    console.log("📊 Fetched profile:", profileArr, "roles:", rolesArr);
+    return {
+      profile: Array.isArray(profileArr) && profileArr.length > 0
+        ? (profileArr[0] as { id: string; full_name: string | null; email: string | null; company_id: string | null })
+        : null,
+      roles: Array.isArray(rolesArr) ? rolesArr.map((r: { role: string }) => r.role) : [],
+    };
+  } catch (err) {
+    console.error("❌ Error fetching profile/roles:", err);
+    throw err;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -97,12 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     //   propagated to the REST client yet.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "INITIAL_SESSION") return;
+        console.log("🔔 Auth event:", event, "User:", session?.user?.email);
+        if (event === "INITIAL_SESSION") {
+          console.log("ℹ️ Skipping INITIAL_SESSION");
+          return;
+        }
         if (event === "TOKEN_REFRESHED") {
+          console.log("🔄 Token refreshed");
           setSession(session);
           setUser(session?.user ?? null);
           return;
         }
+        console.log("📋 Applying session for event:", event);
         await applySession(session);
       }
     );
