@@ -236,6 +236,7 @@ export default function DevicePairing() {
               <p className="text-white/40 text-xs uppercase tracking-[0.2em] mb-4">Código de Pareamento</p>
               <p className="text-6xl font-mono font-black text-blue-400 tracking-[0.4em] select-all">{code}</p>
               <p className="text-white/40 text-sm mt-6">Expira em: {formatTime(timeLeft)}</p>
+              {deviceId && <p className="text-white/20 text-xs mt-4">ID: {deviceId.slice(0, 8)}...</p>}
             </div>
             <div className="space-y-2">
               <p className="text-white/30 text-sm">Aguardando pareamento...</p>
