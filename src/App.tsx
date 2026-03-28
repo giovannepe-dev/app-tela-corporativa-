@@ -41,9 +41,9 @@ export default function App() {
     }
   }, []);
 
-  // TV mode: explicitly on /pair route OR if no authentication
-  // Admin mode: authenticated AND not on /pair route
-  const isTVRoute = pathname === "/pair" || pathname === "/player";
+  // TV mode: explicitly on /pair route OR /player/* routes
+  // Admin mode: authenticated AND not on TV routes
+  const isTVRoute = pathname === "/pair" || pathname.startsWith("/player") || pathname === "/offline";
   const isAuthenticated = !!user && !loading && !isTVRoute;
 
   console.log("🔧 App render - loading:", loading, "isTVRoute:", isTVRoute, "isAuthenticated:", isAuthenticated, "pathname:", pathname);
