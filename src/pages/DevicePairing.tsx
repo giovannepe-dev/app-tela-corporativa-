@@ -35,20 +35,37 @@ export default function DevicePairing() {
     checkIfPaired();
   }, []);
 
-  // Auto-redirect to player using device ID (works with RLS)
+  // Poll for pairing status
   useEffect(() => {
     if (!deviceId || status === "paired") return;
 
-    // After device is registered, periodically try to access player
-    // If device is paired, it will have a device_token and player will load
-    const redirectTimer = setInterval(() => {
-      console.log("📱 Attempting redirect to player...");
-      // Try to go to player - if device is paired, it will load
-      // If not paired yet, player will show "not found" briefly
-      window.location.href = `/player/${deviceId}`;
-    }, 3000);
+    const pollForPairing = async () => {
+      try {
+        const response = await fetch(
+          "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "check", device_id: deviceId }),
+          }
+        );
 
-    return () => clearInterval(redirectTimer);
+        const data = await response.json();
+        console.log("🔍 Polling status:", data);
+
+        if (data.paired && data.device_token) {
+          console.log("✅ Device paired! Token:", data.device_token);
+          localStorage.setItem("device_token", data.device_token);
+          setStatus("paired");
+          window.location.href = `/player/${data.device_token}`;
+        }
+      } catch (err) {
+        console.warn("⚠️ Polling error:", err);
+      }
+    };
+
+    const pollTimer = setInterval(pollForPairing, 3000);
+    return () => clearInterval(pollTimer);
   }, [deviceId, status]);
 
   // Generate initial code and register in database
