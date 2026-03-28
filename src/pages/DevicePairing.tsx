@@ -42,7 +42,7 @@ export default function DevicePairing() {
     const pollForPairing = async () => {
       try {
         const response = await fetch(
-          "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+          "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/device-pairing",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -82,7 +82,7 @@ export default function DevicePairing() {
         try {
           console.log("🔄 Registering code via fetch...");
           const response = await fetch(
-            "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/tv-register",
+            "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -132,7 +132,7 @@ export default function DevicePairing() {
             try {
               console.log("🔄 Refreshing pairing code:", newCode);
               const response = await fetch(
-                "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/tv-register",
+                "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },

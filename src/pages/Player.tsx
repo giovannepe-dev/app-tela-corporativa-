@@ -254,7 +254,7 @@ function PairingScreen({ code, deviceName }: { code: string; deviceName?: string
 async function loadScreenData(screenId: string): Promise<ScreenData | null> {
   try {
     const response = await fetch(
-      "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+      "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/device-pairing",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -345,7 +345,7 @@ export default function Player() {
     try {
       // Try to get device by token via fetch
       const response = await fetch(
-        "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+        "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/device-pairing",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -385,7 +385,7 @@ export default function Player() {
   const loadPlaylist = useCallback(async (playlistId: string) => {
     try {
       const response = await fetch(
-        "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+        "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/device-pairing",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -444,7 +444,7 @@ export default function Player() {
   useEffect(() => {
     if (!device?.id) return;
     const ping = () => {
-      fetch("https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing", {
+      fetch("https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/device-pairing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "device_heartbeat", device_id: device.id }),
