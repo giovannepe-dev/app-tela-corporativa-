@@ -88,7 +88,7 @@ export default function DevicePairing() {
           // Fallback to direct fetch
           console.log("🔄 Trying direct fetch...");
           const response = await fetch(
-            "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
+            "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/tv-register",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -150,7 +150,7 @@ export default function DevicePairing() {
               } catch (err) {
                 console.warn("⚠️ Fallback refresh:", err);
                 const response = await fetch(
-                  "https://qbxovcazqpgigrkirhwh.supabase.co/functions/v1/tv-register",
+                  "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/tv-register",
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
