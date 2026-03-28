@@ -44,7 +44,7 @@ const widgetButtons: { type: WidgetType; icon: any; label: string }[] = [
 ];
 
 export default function ScreenEditor() {
-  const { screenId } = useParams<{ screenId: string }>();
+  const { id: screenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [screenName, setScreenName] = useState("Nova Tela");
