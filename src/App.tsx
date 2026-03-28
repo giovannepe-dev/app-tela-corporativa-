@@ -46,8 +46,10 @@ export default function App() {
   const isTVRoute = pathname === "/pair" || pathname === "/player";
   const isAuthenticated = !!user && !loading && !isTVRoute;
 
+  console.log("🔧 App render - loading:", loading, "isTVRoute:", isTVRoute, "isAuthenticated:", isAuthenticated, "pathname:", pathname);
+
   if (loading && !isTVRoute) {
-    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0e1a', color: 'white' }}>Carregando...</div>;
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0e1a', color: 'white', fontSize: '20px' }}>Carregando... (loading={String(loading)})</div>;
   }
 
   return (
