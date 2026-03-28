@@ -252,17 +252,28 @@ function PairingScreen({ code, deviceName }: { code: string; deviceName?: string
 }
 
 async function loadScreenData(screenId: string): Promise<ScreenData | null> {
-  const { data } = await supabase.functions.invoke("device-pairing", {
-    body: { action: "get_screen", screen_id: screenId },
-  });
-  if (!data) return null;
-  const layout = data.layout_json as any;
-  return {
-    width: data.width,
-    height: data.height,
-    backgroundColor: data.background_color || "#0a0e1a",
-    widgets: (layout?.widgets ?? []) as Widget[],
-  };
+  try {
+    const response = await fetch(
+      "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/device-pairing",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "get_screen", screen_id: screenId }),
+      }
+    );
+    const data = await response.json();
+    if (!response.ok || !data) return null;
+    const layout = data.layout_json as any;
+    return {
+      width: data.width,
+      height: data.height,
+      backgroundColor: data.background_color || "#0a0e1a",
+      widgets: (layout?.widgets ?? []) as Widget[],
+    };
+  } catch (err) {
+    console.error("Error loading screen:", err);
+    return null;
+  }
 }
 
 export default function Player() {
