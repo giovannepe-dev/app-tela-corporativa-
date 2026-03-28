@@ -37,13 +37,19 @@ export default function DevicePairing() {
 
   // Poll for device pairing updates
   useEffect(() => {
-    if (status !== "waiting" || !deviceId) return;
+    console.log("🔵 Poll effect triggered, status:", status, "deviceId:", deviceId);
+    if (status !== "waiting" || !deviceId) {
+      console.log("🟡 Poll skipped: status not waiting or no deviceId");
+      return;
+    }
 
+    console.log("🟢 Poll started for device:", deviceId);
     const pollInterval = setInterval(async () => {
       try {
+        console.log("🔄 Polling device:", deviceId);
         const { data, error } = await supabase
           .from("devices")
-          .select("device_token, status")
+          .select("device_token, status, pairing_code")
           .eq("id", deviceId)
           .single();
 
@@ -52,6 +58,8 @@ export default function DevicePairing() {
           return;
         }
 
+        console.log("📊 Poll result:", data);
+
         // Check if device has been paired (has device_token)
         if (data?.device_token && data.status !== "pairing") {
           console.log("🎉 Device paired! Token:", data.device_token);
@@ -59,12 +67,14 @@ export default function DevicePairing() {
           setStatus("paired");
           setTimeout(() => {
             window.location.href = `/player/${data.device_token}`;
-          }, 1500); // Show success message briefly
+          }, 1500);
+        } else {
+          console.log("⏳ Still waiting... token:", data?.device_token, "status:", data?.status);
         }
       } catch (err) {
         console.warn("⚠️ Polling failed:", err);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 2000);
 
     return () => clearInterval(pollInterval);
   }, [status, deviceId]);
