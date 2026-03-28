@@ -80,30 +80,7 @@ export default function DevicePairing() {
 
         // Try using Supabase functions invoke (better for mobile)
         try {
-          console.log("🔄 Trying supabase.functions.invoke...");
-          const { data, error } = await supabase.functions.invoke("tv-register", {
-            body: { pairing_code: newCode },
-            headers: { Authorization: "" }
-          });
-
-          console.log("📊 Register response:", { data, error });
-
-          if (error) {
-            console.error("🚨 Edge function error:", error);
-            throw error;
-          }
-
-          console.log("✅ Pairing code registered:", newCode, "Device ID:", data?.id);
-          if (data?.id) {
-            setDeviceId(data.id);
-            localStorage.setItem("device_id", data.id);
-          }
-          setStatus("waiting");
-        } catch (err: any) {
-          console.warn("⚠️ Fallback to fetch, error was:", err?.message);
-
-          // Fallback to direct fetch
-          console.log("🔄 Trying direct fetch...");
+          console.log("🔄 Registering code via fetch...");
           const response = await fetch(
             "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/tv-register",
             {
@@ -114,18 +91,21 @@ export default function DevicePairing() {
           );
 
           const data = await response.json();
-          console.log("📊 Fetch response:", { status: response.status, data });
+          console.log("📊 Register response:", { status: response.status, data });
 
           if (!response.ok) {
             throw new Error(data?.error || response.statusText);
           }
 
-          console.log("✅ Pairing code registered (fetch):", newCode, "Device ID:", data?.id);
+          console.log("✅ Pairing code registered:", newCode, "Device ID:", data?.id);
           if (data?.id) {
             setDeviceId(data.id);
             localStorage.setItem("device_id", data.id);
           }
           setStatus("waiting");
+        } catch (err: any) {
+          console.error("❌ Register failed:", err?.message);
+          setStatus("error");
         }
       } catch (err: any) {
         console.error("❌ Register failed:", err?.message);
@@ -151,39 +131,23 @@ export default function DevicePairing() {
 
             try {
               console.log("🔄 Refreshing pairing code:", newCode);
-
-              try {
-                const { data, error } = await supabase.functions.invoke("tv-register", {
-                  body: { pairing_code: newCode },
-                  headers: { Authorization: "" }
-                });
-
-                if (error) throw error;
-                console.log("🎯 Pairing code refreshed:", newCode, "Device ID:", data?.id);
-                if (data?.id) {
-                  setDeviceId(data.id);
-                  localStorage.setItem("device_id", data.id);
+              const response = await fetch(
+                "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/tv-register",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ pairing_code: newCode }),
                 }
-              } catch (err) {
-                console.warn("⚠️ Fallback refresh:", err);
-                const response = await fetch(
-                  "https://rkvuveffxvijdarjezzy.supabase.co/functions/v1/tv-register",
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ pairing_code: newCode }),
-                  }
-                );
+              );
 
-                const data = await response.json();
-                if (!response.ok) {
-                  throw new Error(data?.error || response.statusText);
-                }
-                console.log("🎯 Pairing code refreshed (fetch):", newCode, "Device ID:", data?.id);
-                if (data?.id) {
-                  setDeviceId(data.id);
-                  localStorage.setItem("device_id", data.id);
-                }
+              const data = await response.json();
+              if (!response.ok) {
+                throw new Error(data?.error || response.statusText);
+              }
+              console.log("🎯 Pairing code refreshed:", newCode, "Device ID:", data?.id);
+              if (data?.id) {
+                setDeviceId(data.id);
+                localStorage.setItem("device_id", data.id);
               }
             } catch (err) {
               console.error("❌ Code refresh error:", err);
