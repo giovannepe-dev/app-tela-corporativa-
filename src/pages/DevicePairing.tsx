@@ -12,6 +12,62 @@ export default function DevicePairing() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"generating" | "waiting" | "paired" | "error">("generating");
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+
+  // Check if device is already paired
+  useEffect(() => {
+    const checkIfPaired = async () => {
+      try {
+        console.log("🔍 Checking if device is already paired...");
+
+        // Get device_token from localStorage if exists
+        const storedToken = localStorage.getItem("device_token");
+        if (storedToken) {
+          console.log("✅ Device already paired, redirecting to player:", storedToken);
+          window.location.href = `/player/${storedToken}`;
+          return;
+        }
+      } catch (err) {
+        console.warn("⚠️ Check paired failed:", err);
+      }
+    };
+
+    checkIfPaired();
+  }, []);
+
+  // Poll for device pairing updates
+  useEffect(() => {
+    if (status !== "waiting" || !deviceId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("devices")
+          .select("device_token, status")
+          .eq("id", deviceId)
+          .single();
+
+        if (error) {
+          console.warn("⚠️ Poll error:", error);
+          return;
+        }
+
+        // Check if device has been paired (has device_token)
+        if (data?.device_token && data.status !== "pairing") {
+          console.log("🎉 Device paired! Token:", data.device_token);
+          localStorage.setItem("device_token", data.device_token);
+          setStatus("paired");
+          setTimeout(() => {
+            window.location.href = `/player/${data.device_token}`;
+          }, 1500); // Show success message briefly
+        }
+      } catch (err) {
+        console.warn("⚠️ Polling failed:", err);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [status, deviceId]);
 
   // Generate initial code and register in database
   useEffect(() => {
@@ -37,6 +93,10 @@ export default function DevicePairing() {
           }
 
           console.log("✅ Pairing code registered:", newCode, "Device ID:", data?.id);
+          if (data?.id) {
+            setDeviceId(data.id);
+            localStorage.setItem("device_id", data.id);
+          }
           setStatus("waiting");
         } catch (err) {
           console.warn("⚠️ Fallback to fetch:", err);
@@ -59,6 +119,10 @@ export default function DevicePairing() {
           }
 
           console.log("✅ Pairing code registered (fetch):", newCode, "Device ID:", data?.id);
+          if (data?.id) {
+            setDeviceId(data.id);
+            localStorage.setItem("device_id", data.id);
+          }
           setStatus("waiting");
         }
       } catch (err) {
@@ -93,6 +157,10 @@ export default function DevicePairing() {
 
                 if (error) throw error;
                 console.log("🎯 Pairing code refreshed:", newCode, "Device ID:", data?.id);
+                if (data?.id) {
+                  setDeviceId(data.id);
+                  localStorage.setItem("device_id", data.id);
+                }
               } catch (err) {
                 console.warn("⚠️ Fallback refresh:", err);
                 const response = await fetch(
@@ -109,6 +177,10 @@ export default function DevicePairing() {
                   throw new Error(data?.error || response.statusText);
                 }
                 console.log("🎯 Pairing code refreshed (fetch):", newCode, "Device ID:", data?.id);
+                if (data?.id) {
+                  setDeviceId(data.id);
+                  localStorage.setItem("device_id", data.id);
+                }
               }
             } catch (err) {
               console.error("❌ Code refresh error:", err);
