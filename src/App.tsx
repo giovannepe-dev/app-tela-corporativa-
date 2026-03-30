@@ -6,6 +6,7 @@ import Player from "./pages/Player";
 import Offline from "./pages/Offline";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import TvWebView from "./pages/TvWebView";
 import AdminLayout from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Devices from "./pages/admin/Devices";
@@ -72,6 +73,9 @@ export default function App() {
 
       <BrowserRouter>
         <Routes>
+        {/* TV WebView - Direct Lovable app */}
+        <Route path="/tv" element={<TvWebView />} />
+
         {/* Default route - go to pair for TV devices */}
         <Route path="/" element={<DevicePairing />} />
 
